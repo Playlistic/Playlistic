@@ -1,5 +1,5 @@
 # Youtube2Spotify
-Attempt to find spotify alternatives to youtube automatically generated playlists
+Attempt to find Spotify alternatives to Youtube automatically generated playlists
 
 Asks for Spotify authentication and takes a youtube playlist ID,
 Creates a Spotify playlist using the User's identity
