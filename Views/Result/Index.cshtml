@@ -1,0 +1,25 @@
+﻿@model ResultModel
+<div>
+    @if (Model != null)
+    {
+    <p>Total: (@Model.TotalVideoNames.Count)</p>
+        foreach (string songName in Model.TotalVideoNames)
+        {
+            <p>@songName</p>
+        }
+
+        <p>Found: (@Model.CompletedNames.Count)</p>
+        foreach (string songName in Model.CompletedNames)
+        {
+            <p>@songName</p>
+        }
+    }
+</div>
+
+<div>
+    @if (Model == null)
+    {
+        <p>Failed to generate playlist</p>
+    }
+</div>
+
