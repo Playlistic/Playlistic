@@ -26,7 +26,7 @@ namespace Youtube2Spotify.Helpers
             {
                 // I suck with regex so this the alternative
                 // the goal is to ignore everything that's between "(official" and "audio)"
-                if (x.Contains("[official") || x.Contains("(official"))
+                if (x.Contains("[official") || x.Contains("(official") || x.Contains("(lyric") || x.Contains("[lyric"))
                 {
                     ignorebrackets = true;
                     return string.Empty;
