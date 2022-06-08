@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Youtube2Spotify.Helpers;
 using Youtube2Spotify.Models;
-
+using System.IO;
 namespace Youtube2Spotify.Controllers
 {
     public class YoutubePlaylistTitleAndDescription
@@ -155,7 +155,7 @@ namespace Youtube2Spotify.Controllers
 
         public YoutubePlaylistTitleAndDescription GenerateYoutubePlaylistTitleAndDescription(string playlistId)
         {
-            string key = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\Secret.txt");
+            string key = File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[0];
 
             string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description))";
             dynamic json = MakeYoutubeGetCalls(url);
