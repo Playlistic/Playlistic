@@ -1,2 +1,4 @@
 wwwroot/Secret.txt
 bin/
+.vs/
+obj/
