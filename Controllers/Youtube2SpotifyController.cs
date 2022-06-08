@@ -93,18 +93,13 @@ namespace Youtube2Spotify.Controllers
             IHtmlDocument document = parser.ParseDocument(html);
             List<IElement> listOfScript = document.Body.GetElementsByTagName("script").ToList();
             IElement element = listOfScript.First(x => x.TextContent.Contains("initialData.push"));
-            string ytInitialData = element.TextContent;
-            List<string> scriptChunks = ytInitialData.Split(";").ToList();
-            string rawPlaylistData = scriptChunks.First(x => x.Contains("\\/browse"));
-            rawPlaylistData += ";";
-            rawPlaylistData = rawPlaylistData.Replace("initialData.push(", "");
-            rawPlaylistData.Replace(");", "");
-            string realData = rawPlaylistData.Split("data: ").ToList().Last();
-            realData = Regex.Unescape(@realData);
-            realData = realData.Replace("'{", "{");
-            realData = realData.Replace("}'", "");
-            realData = realData.Replace(");", "");
-            dynamic initialData = JsonConvert.DeserializeObject(realData);
+            string ytInitialData = element.InnerHtml;
+            // people put all kinds of characters in metadata, gross
+            ytInitialData = Regex.Unescape(ytInitialData);
+            ytInitialData = HttpUtility.HtmlDecode(ytInitialData);
+            string rawPlaylistData = ytInitialData.Split("data: '").Last();
+            rawPlaylistData = rawPlaylistData.Replace("'});ytcfg.set({'YTMUSIC_INITIAL_DATA': initialData});} catch (e) {}", "");
+            dynamic initialData = JsonConvert.DeserializeObject(rawPlaylistData);
             JArray playlist = initialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents;
 
             return playlist;
@@ -154,10 +149,23 @@ namespace Youtube2Spotify.Controllers
 
             string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description))";
             dynamic json = MakeYoutubeGetCalls(url);
+
+            string title = json.items[0].snippet.title;
+            string description = json.items[0].snippet.description;
+
+            if (title.Length > 200)
+            {
+                title = title.Substring(0, 200);
+            }
+            if (description.Length > 200)
+            {
+                description = description.Substring(0, 200);
+            }
+
             return new YoutubePlaylistTitleAndDescription()
             {
-                title = json.items[0].snippet.title,
-                description = json.items[0].snippet.description
+                title = title,
+                description = description
             };
         }
 
@@ -197,7 +205,7 @@ namespace Youtube2Spotify.Controllers
 
             string postData = "{";
             postData += "\"name\": " + $"\"{youtubePlaylistTitleAndDescription.title}\",";
-            postData += "\"description\":" + $"\"{youtubePlaylistTitleAndDescription.description}\",";
+            postData += "\"description\":" + $"\"{HttpUtility.HtmlEncode(youtubePlaylistTitleAndDescription.description)}\",";
             postData += "\"public\": true";
             postData += "}";
 

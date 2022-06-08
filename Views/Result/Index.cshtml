@@ -4,31 +4,33 @@
     Layout = "_Layout";
 }
 
-<div style="display: inline-block; max-width: 100%; vertical-align: top;">
-    <ol>
-        @if (Model != null)
-        {
-            <li>Total: (@Model.TotalVideoNames.Count)</li>
-            foreach (string songName in Model.TotalVideoNames)
-            {
-                <li>@songName</li>
-            }
-        }
-    </ol>
-</div>
+@if (Model != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Youtube Videos Total: (@Model.TotalVideoNames.Count)</th>
+                <th scope="col">Spotify Tracks Total: Found: (@Model.CompletedNames.Where(x => !string.IsNullOrEmpty(x)).Count());</th>
+            </tr>
+        </thead>
+        <tbody>
 
-<div style="display: inline-block; max-width: 100%; vertical-align: top;">
-    <ol>
-        @if (Model != null)
-        {
-            <li>Found: (@Model.CompletedNames.Where(x => !string.IsNullOrEmpty(x)).Count());</li>
-            foreach (string songName in Model.CompletedNames)
+            @for (int i = 0; i < Model.TotalVideoNames.Count; i++)
             {
-                <li>@songName</li>
+                <tr>
+                    <th scope="row">i</th>
+                    <td>Model.TotalVideoNames[i]</td>
+                    <td>Model.CompletedNames[i]</td>
+
+                </tr>
             }
-        }
-    </ol>
-</div>
+        </tbody>
+    </table>
+}
+
+
+
 
 
 <div>
