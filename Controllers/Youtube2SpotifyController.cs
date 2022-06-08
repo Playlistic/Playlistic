@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -80,9 +81,9 @@ namespace Youtube2Spotify.Controllers
             // grab the playlist from music.youtube.com 
 
             string html;
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create($"https://www.youtube.com/playlist?list={playlistId}");
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create($"https://music.youtube.com/playlist?list={playlistId}");
             request.AutomaticDecompression = DecompressionMethods.GZip;
-
+            request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36 Edg/102.0.1245.33";
             using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             using (Stream stream = response.GetResponseStream())
             using (StreamReader reader = new StreamReader(stream))
@@ -93,12 +94,21 @@ namespace Youtube2Spotify.Controllers
             HtmlParser parser = new HtmlParser();
             IHtmlDocument document = parser.ParseDocument(html);
             List<IElement> listOfScript = document.Body.GetElementsByTagName("script").ToList();
-            IElement element = listOfScript.First(x => x.TextContent.Contains("ytInitialData"));
+            IElement element = listOfScript.First(x => x.TextContent.Contains("initialData.push"));
             string ytInitialData = element.TextContent;
-            ytInitialData = ytInitialData.Replace("var ytInitialData = ", "");
-            ytInitialData = ytInitialData.Replace(";", "");
-            dynamic initialData = JsonConvert.DeserializeObject(ytInitialData);
-            JArray playlist = initialData.contents.twoColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].itemSectionRenderer.contents[0].playlistVideoListRenderer.contents;
+            List<string> scriptChunks = ytInitialData.Split(";").ToList();
+            string rawPlaylistData = scriptChunks.First(x => x.Contains("\\/browse"));
+            rawPlaylistData += ";";
+            rawPlaylistData = rawPlaylistData.Replace("initialData.push(", "");
+            rawPlaylistData.Replace(");", "");
+            string realData = rawPlaylistData.Split("data: ").ToList().Last();
+            realData = Regex.Unescape(@realData);
+            realData = Regex.Unescape(@realData);
+            realData = realData.Replace("'{", "{");
+            realData = realData.Replace("}'", "");
+            realData = realData.Replace(");", "");
+            dynamic initialData = JsonConvert.DeserializeObject(realData);
+            JArray playlist = initialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents;
 
             return playlist;
         }
@@ -115,14 +125,22 @@ namespace Youtube2Spotify.Controllers
             //collect the list of videos from Json
             JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
 
-            foreach (dynamic playlistItem in playlist)
+            foreach (dynamic musicResponsiveListItemRenderer in playlist)
             {
-                string name = playlistItem.playlistVideoRenderer.title.runs[0].text;
-                string artist = playlistItem.playlistVideoRenderer.shortBylineText.runs[0].text.ToString().ToLower();
+                string name = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
+                List<string> artists = new List<string>();
 
-                YoutubePlaylistItem info = YoutubePlaylistItemFactory.GetYoutubePlaylistItem(name, artist);
+                foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
+                {
+                    if (((JObject)artistInfo).Count > 1 && artistInfo.text.Value.ToString().Length <= 1)
+                    {
+                        artists.Add(artistInfo.text.Value.ToString());
+                    }
+                }
 
-                songNames.Add(info.song);
+                YoutubePlaylistItem info = YoutubePlaylistItemFactory.GetYoutubePlaylistItem(name, artists);
+
+                songNames.Add($"{string.Join(",", info.artists)} - {info.song}");
 
                 YoutubePlaylistItems.Add(info);
             }
@@ -209,15 +227,11 @@ namespace Youtube2Spotify.Controllers
                     //we got to be smart about this
                     //check if song and artist matches
 
-                    dynamic rightTrack = FindRightTrack(youtubePlaylistItem, false);
+                    dynamic rightTrack = FindRightTrack(youtubePlaylistItem);
 
                     if (rightTrack == null)
                     {
-                        rightTrack = FindRightTrack(youtubePlaylistItem, true);
-                    }
-
-                    if (rightTrack == null)
-                    {
+                        foundTracks.Add("");
                         continue;
                     }
 
@@ -242,11 +256,9 @@ namespace Youtube2Spotify.Controllers
         }
 
 
-        private dynamic FindRightTrack(YoutubePlaylistItem youtubePlaylistItem, bool useOriginalName)
+        private dynamic FindRightTrack(YoutubePlaylistItem youtubePlaylistItem)
         {
-
-            string queryString = FormatSpotifySearchString(youtubePlaylistItem, useOriginalName);
-
+            string queryString = FormatSpotifySearchString(youtubePlaylistItem);
             dynamic searchResult = GetTracks(queryString);
 
             if (searchResult == null)
@@ -254,65 +266,10 @@ namespace Youtube2Spotify.Controllers
                 return null;
             }
 
-            dynamic rightTrack = SearchForTrack(searchResult, youtubePlaylistItem);
-
-
-            if (rightTrack == null)
-            {
-                return null;
-            }
-
+            dynamic rightTrack = searchResult.tracks.items[0];
             return rightTrack;
         }
 
-
-
-
-        private dynamic SearchForTrack(dynamic searchResults, YoutubePlaylistItem youtubePlaylistItem)
-        {
-            foreach (dynamic track in searchResults.tracks.items)
-            {
-                if (EvaluateTrackLegitness(youtubePlaylistItem, track))
-                {
-                    return track;
-                }
-            }
-            return null;
-        }
-
-        private bool EvaluateTrackLegitness(YoutubePlaylistItem youtubePlaylistItem, dynamic track)
-        {
-            //get the artist name from spotify result
-            //check if youtube song title contains spotify artist or youtube artist title contains spotify artist
-            //check if youtube song title contains spotify song title
-
-            if (track == null)
-            {
-                return false;
-            }
-
-            foreach (dynamic artist in track.artists)
-            {
-                //check if artist name match
-                if (!youtubePlaylistItem.song.Contains(artist.name.ToString().ToLower()) && !youtubePlaylistItem.artist.Contains(artist.name.ToString().ToLower()))
-                {
-                    return false;
-                }
-
-                //check if song name match
-                foreach (string namePieces in track.name.ToString().ToLower().Split(' '))
-                {
-                    if (youtubePlaylistItem.song.Contains(namePieces))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            return true;
-        }
 
         private string FormatResultString(string song, List<string> artists)
         {
@@ -328,18 +285,13 @@ namespace Youtube2Spotify.Controllers
             string requestString = "https://api.spotify.com/v1/search?query=";
             if (!string.IsNullOrEmpty(youtubePlaylistItem.song) && !string.IsNullOrWhiteSpace(youtubePlaylistItem.song))
             {
-                string songName = useOriginalTitle ? youtubePlaylistItem.originalName : youtubePlaylistItem.song;
+                string songName = youtubePlaylistItem.song;
 
-                if (youtubePlaylistItem.song.Contains(youtubePlaylistItem.artist))
-                {
-                    requestString += HttpUtility.UrlEncode(@$"{songName}");
-                }
-                else
-                {
-                    requestString += HttpUtility.UrlEncode($"{songName} {youtubePlaylistItem.artist}");
-                }
+                requestString += HttpUtility.UrlEncode(string.Join(" ", youtubePlaylistItem.artists));
+
+                requestString += HttpUtility.UrlEncode($" {songName}");
             }
-            requestString += "&type=track&offset=0&limit=10";
+            requestString += "&type=track&offset=0&limit=1";
 
             return requestString;
         }

@@ -1,19 +1,28 @@
 ﻿@model ResultModel
-<div>
-    @if (Model != null)
-    {
-    <p>Total: (@Model.TotalVideoNames.Count)</p>
-        foreach (string songName in Model.TotalVideoNames)
+<div style="display:inline-block;width:500px;vertical-align:top;">
+    <ol>
+        @if (Model != null)
         {
-            <p>@songName</p>
+            <li>Total: (@Model.TotalVideoNames.Count)</li>
+            foreach (string songName in Model.TotalVideoNames)
+            {
+                <li>@songName</li>
+            }
         }
+    </ol>
+</div>
 
-        <p>Found: (@Model.CompletedNames.Count)</p>
-        foreach (string songName in Model.CompletedNames)
+<div style="display:inline-block;width:500px;vertical-align:top;">
+    <ol>
+        @if (Model != null)
         {
-            <p>@songName</p>
+            <li>Found: (@Model.CompletedNames.Where(x => !string.IsNullOrEmpty(x)).Count());</li>
+            foreach (string songName in Model.CompletedNames)
+            {
+                <li>@songName</li>
+            }
         }
-    }
+    </ol>
 </div>
 
 <div>
