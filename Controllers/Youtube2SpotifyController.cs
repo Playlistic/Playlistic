@@ -159,12 +159,12 @@ namespace Youtube2Spotify.Controllers
         {
             string key = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\Secret.txt");
 
-            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle))";
+            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description))";
             dynamic json = MakeYoutubeGetCalls(url);
             return new YoutubePlaylistTitleAndDescription()
             {
                 title = json.items[0].snippet.title,
-                description = json.items[0].snippet.description
+                description = json.items[0].snippet.description + $"\n Pulled from:https://music.youtube.com/playlist?list={playlistId}"
             };
         }
 
