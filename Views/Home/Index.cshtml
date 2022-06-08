@@ -4,10 +4,10 @@
     ViewBag.Title = "Youtube2Spotify";
 }
 
-<h1>Youtube2Spotify</h1>
-
 @if (!Model.Authenticated)
 {
+    <h1>TLDR: I need permission to make the playlist on your spotify account for you</h1>
+
     <form id="authBlock" method="post" asp-action="TriggerAuth" asp-controller="Auth">
         <button type="submit">Authorize Spotify</button>
     </form>
@@ -16,6 +16,8 @@
 
 @if (Model.Authenticated)
 {
+
+    <h1>Enter a YouTube Playlist ID</h1>
     <form method="get" asp-action="Index" asp-controller="Youtube2Spotify">
         <input type="text" id="youtubePlaylistID" name="youtubePlaylistID" placeholder="RDCLAK5uy_kj3rhiar1LINmyDcuFnXihEO0K1NQa2jI" />
         <button type="submit">Submit</button>
