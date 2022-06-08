@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Youtube2Spotify.Helpers;
 using Youtube2Spotify.Models;
-using System.IO;
+
 namespace Youtube2Spotify.Controllers
 {
     public class YoutubePlaylistTitleAndDescription
@@ -145,24 +145,20 @@ namespace Youtube2Spotify.Controllers
             }
 
             // add total number of song names
-            ResultModel result = new ResultModel();
-            result.TotalVideoNames.AddRange(songNames);
-
             // okay, we got the title, time to look it up on Spotify
-            result.CompletedNames = GenerateSpotifyPlaylist(GenerateYoutubePlaylistTitleAndDescription(youtubePlaylistId), YoutubePlaylistItems);
-            return result;
+            return GenerateSpotifyPlaylist(GenerateYoutubePlaylistTitleAndDescription(youtubePlaylistId), YoutubePlaylistItems, songNames);
         }
 
         public YoutubePlaylistTitleAndDescription GenerateYoutubePlaylistTitleAndDescription(string playlistId)
         {
-            string key = File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[0];
+            string key = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[0];
 
             string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description))";
             dynamic json = MakeYoutubeGetCalls(url);
             return new YoutubePlaylistTitleAndDescription()
             {
                 title = json.items[0].snippet.title,
-                description = json.items[0].snippet.description + $"\n Pulled from:https://music.youtube.com/playlist?list={playlistId}"
+                description = json.items[0].snippet.description
             };
         }
 
@@ -185,14 +181,14 @@ namespace Youtube2Spotify.Controllers
             return (HttpWebResponse)request.GetResponse();
         }
 
-
-
         /// <summary>
         /// Generates a spotify playlist based on crawled music info from youtube
         /// </summary>
         /// <param name="youtubePlaylistItems"></param>
-        public List<string> GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems)
+        public ResultModel GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames)
         {
+            ResultModel resultModel = new ResultModel();
+            resultModel.TotalVideoNames = songNames;
             List<string> foundTracks = new List<string>();
             //create a playlist using the currently authenticated profile
             string newSpotifyPlaylistID = string.Empty;
@@ -249,7 +245,9 @@ namespace Youtube2Spotify.Controllers
             }
 
             AddTracksToPlaylist(newSpotifyPlaylistID, string.Join(",", trackString));
-            return foundTracks;
+            resultModel.CompletedNames = foundTracks;
+            resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+            return resultModel;
         }
 
 

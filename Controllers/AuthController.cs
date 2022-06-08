@@ -87,7 +87,6 @@ namespace Youtube2Spotify.Controllers
                 }
                 SpotifyToken spotifyToken = JsonConvert.DeserializeObject<SpotifyToken>(html);
                 HttpContext.Session.SetString("access_token", spotifyToken.access_token);
-                //Console.WriteLine(html);
             }
 
             return Redirect("~/");

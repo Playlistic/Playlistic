@@ -25,10 +25,16 @@
     </ol>
 </div>
 
+
 <div>
     @if (Model == null)
     {
         <p>Failed to generate playlist</p>
+    }
+    else
+    {
+        <p>Your Converted Spotify Playlist is Ready!</p>
+        <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
     }
 </div>
 

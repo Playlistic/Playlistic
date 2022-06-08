@@ -9,11 +9,13 @@ namespace Youtube2Spotify.Models
     {
         public List<string> TotalVideoNames;
         public List<string> CompletedNames;
+        public string SpotifyLink;
 
         public ResultModel()
         {
             TotalVideoNames = new List<string>();
             CompletedNames = new List<string>();
+            SpotifyLink = string.Empty;
         }
     }
 }
