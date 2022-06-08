@@ -44,15 +44,12 @@ namespace Youtube2Spotify.Helpers
             cleanedSongName = cleanedSongName.Replace("\"", "");
 
             foreach (string artist in artists)
-            {
+            {                
                 string artistNameLowered = artist.ToLower();
-                //youtube music still sometimes include artist name in the title, which messes with spotify searches
-                cleanedSongName = cleanedSongName.Replace(artistNameLowered, "");
                 youtubePlaylistItem.artists.Add(artistNameLowered);
             }
 
             youtubePlaylistItem.song = cleanedSongName;
-
             return youtubePlaylistItem;
         }
     }

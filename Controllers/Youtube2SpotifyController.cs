@@ -132,9 +132,10 @@ namespace Youtube2Spotify.Controllers
 
                 foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
                 {
-                    if (((JObject)artistInfo).Count > 1 && artistInfo.text.Value.ToString().Length <= 1)
+                    string artistName = artistInfo.text.Value.ToString();
+                    if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
                     {
-                        artists.Add(artistInfo.text.Value.ToString());
+                        artists.Add(artistName);
                     }
                 }
 
@@ -280,20 +281,22 @@ namespace Youtube2Spotify.Controllers
             return songName;
         }
 
-        private string FormatSpotifySearchString(YoutubePlaylistItem youtubePlaylistItem, bool useOriginalTitle = false)
+        private string FormatSpotifySearchString(YoutubePlaylistItem youtubePlaylistItem)
         {
-            string requestString = "https://api.spotify.com/v1/search?query=";
+            StringBuilder queryBuilder = new StringBuilder();
+            queryBuilder.Append("https://api.spotify.com/v1/search?query=");
             if (!string.IsNullOrEmpty(youtubePlaylistItem.song) && !string.IsNullOrWhiteSpace(youtubePlaylistItem.song))
             {
                 string songName = youtubePlaylistItem.song;
-
-                requestString += HttpUtility.UrlEncode(string.Join(" ", youtubePlaylistItem.artists));
-
-                requestString += HttpUtility.UrlEncode($" {songName}");
+                if (!songName.Contains(" - ") && !songName.Contains(" – "))
+                {
+                    queryBuilder.Append(HttpUtility.UrlEncode(string.Join(" ", youtubePlaylistItem.artists)));
+                }
+                queryBuilder.Append(HttpUtility.UrlEncode($" {songName}"));
             }
-            requestString += "&type=track&offset=0&limit=1";
+            queryBuilder.Append("&type=track&offset=0&limit=1");
 
-            return requestString;
+            return queryBuilder.ToString();
         }
 
         public void AddTracksToPlaylist(string newSpotifyPlaylistID, string tracksToAdd)
@@ -332,7 +335,7 @@ namespace Youtube2Spotify.Controllers
             return null;
 
         }
-        //json.tracks.items[0].uri
+
         public string GetUserId()
         {
             dynamic user_Object;
