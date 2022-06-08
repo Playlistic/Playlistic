@@ -101,7 +101,6 @@ namespace Youtube2Spotify.Controllers
             rawPlaylistData.Replace(");", "");
             string realData = rawPlaylistData.Split("data: ").ToList().Last();
             realData = Regex.Unescape(@realData);
-            realData = Regex.Unescape(@realData);
             realData = realData.Replace("'{", "{");
             realData = realData.Replace("}'", "");
             realData = realData.Replace(");", "");
