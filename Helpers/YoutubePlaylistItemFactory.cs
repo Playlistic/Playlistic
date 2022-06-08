@@ -1,14 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text.RegularExpressions;
-using Youtube2Spotify.Models;
-using AngleSharp.Html.Parser;
-using AngleSharp.Dom;
-using AngleSharp.Html.Dom;
-using System.Globalization;
 
 namespace Youtube2Spotify.Helpers
 {
