@@ -8,6 +8,8 @@ using Youtube2Spotify.Models;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
+using System.Web;
+using Youtube2Spotify.Helpers;
 
 namespace Youtube2Spotify.Controllers
 {
@@ -51,7 +53,7 @@ namespace Youtube2Spotify.Controllers
 
             spotifyAppId = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[1];
 
-            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri=https%3A%2F%2Flocalhost%3a44320%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&code_challenge_method=S256&code_challenge=" + code_challenge);
+            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative&code_challenge_method=S256&code_challenge=" + code_challenge);
         }
 
         public IActionResult AuthReturnCode(string code)

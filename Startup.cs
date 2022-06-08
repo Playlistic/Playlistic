@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Youtube2Spotify.Helpers;
 
 namespace Youtube2Spotify
 {
@@ -28,6 +29,7 @@ namespace Youtube2Spotify
             {
                 so.IdleTimeout = TimeSpan.FromSeconds(60);
             });
+            HttpContextExtensions.AddHttpContextAccessor(services);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -48,6 +50,7 @@ namespace Youtube2Spotify
             app.UseRouting();
             app.UseAuthorization();
             app.UseSession();
+            app.UseHttpContext();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllerRoute(
