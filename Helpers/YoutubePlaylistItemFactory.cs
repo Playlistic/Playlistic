@@ -43,12 +43,15 @@ namespace Youtube2Spotify.Helpers
             cleanedSongName = cleanedSongName.Replace("  ", " ");
             cleanedSongName = cleanedSongName.Replace("\"", "");
 
-            foreach (string artist in artists)
-            {                
-                string artistNameLowered = artist.ToLower();
-                youtubePlaylistItem.artists.Add(artistNameLowered);
-            }
-
+            if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
+            {
+                foreach (string artist in artists)
+                {
+                    string artistNameLowered = artist.ToLower();
+                    youtubePlaylistItem.artists.Add(artistNameLowered);
+                }
+            }          
+            
             youtubePlaylistItem.song = cleanedSongName;
             return youtubePlaylistItem;
         }

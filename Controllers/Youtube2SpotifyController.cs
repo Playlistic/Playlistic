@@ -140,8 +140,8 @@ namespace Youtube2Spotify.Controllers
                 }
 
                 YoutubePlaylistItem info = YoutubePlaylistItemFactory.GetYoutubePlaylistItem(name, artists);
-
-                songNames.Add($"{string.Join(",", info.artists)} - {info.song}");
+                string allArtistInfo = info.artists.Count() > 0 ? string.Join(", ", info.artists) + " - " : string.Empty;
+                songNames.Add($"{allArtistInfo}{info.song}");
 
                 YoutubePlaylistItems.Add(info);
             }
@@ -225,13 +225,11 @@ namespace Youtube2Spotify.Controllers
             {
                 foreach (YoutubePlaylistItem youtubePlaylistItem in youtubePlaylistItems)
                 {
-                    //we got to be smart about this
-                    //check if song and artist matches
-
                     dynamic rightTrack = FindRightTrack(youtubePlaylistItem);
 
                     if (rightTrack == null)
                     {
+                        //still add blank entry to make the list look nice
                         foundTracks.Add("");
                         continue;
                     }
@@ -276,7 +274,7 @@ namespace Youtube2Spotify.Controllers
         {
             string songName = string.Empty;
 
-            songName += $"{string.Join(",", artists)} - {song}";
+            songName += $"{string.Join(", ", artists)} - {song}";
 
             return songName;
         }
@@ -288,10 +286,7 @@ namespace Youtube2Spotify.Controllers
             if (!string.IsNullOrEmpty(youtubePlaylistItem.song) && !string.IsNullOrWhiteSpace(youtubePlaylistItem.song))
             {
                 string songName = youtubePlaylistItem.song;
-                if (!songName.Contains(" - ") && !songName.Contains(" – "))
-                {
-                    queryBuilder.Append(HttpUtility.UrlEncode(string.Join(" ", youtubePlaylistItem.artists)));
-                }
+                queryBuilder.Append(HttpUtility.UrlEncode(string.Join(" ", youtubePlaylistItem.artists)));
                 queryBuilder.Append(HttpUtility.UrlEncode($" {songName}"));
             }
             queryBuilder.Append("&type=track&offset=0&limit=1");
