@@ -67,7 +67,7 @@ namespace Youtube2Spotify.Controllers
                 string postData = "client_id=" + spotifyAppId;
                 postData += "&grant_type=" + "authorization_code";
                 postData += "&code=" + code;
-                postData += "&redirect_uri=" + "https%3A%2F%2Flocalhost%3a44320%2FAuth%2FAuthReturnCode";               
+                postData += "&redirect_uri=" + $"{HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode";               
                 code_verifier = HttpContext.Session.GetString("code_verifier");
                 postData += "&code_verifier=" + code_verifier;
                 var data = Encoding.ASCII.GetBytes(postData);
