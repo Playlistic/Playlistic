@@ -1,21 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace Youtube2Spotify.Models
 {
     public class ResultModel
     {
-        public List<string> TotalVideoNames;
-        public List<string> CompletedNames;
+        public List<string> YoutubeVideoNames;
+        public List<string> SpotifyTrackNames;
         public string SpotifyLink;
+        public string YoutubeLink;
 
+        public bool Unsupported;
+        public bool ConversionFailed;
         public ResultModel()
         {
-            TotalVideoNames = new List<string>();
-            CompletedNames = new List<string>();
+            YoutubeVideoNames = new List<string>();
+            SpotifyTrackNames = new List<string>();
             SpotifyLink = string.Empty;
+            YoutubeLink = string.Empty;
+            Unsupported = false;
+            ConversionFailed = false;
         }
     }
 }

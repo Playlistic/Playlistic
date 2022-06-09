@@ -34,6 +34,7 @@ namespace Youtube2Spotify.Controllers
 
         public string YoutubePlaylistID { get; set; }
         public List<YoutubePlaylistItem> YoutubePlaylistItems = new List<YoutubePlaylistItem>();
+        YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription;
 
         public IActionResult Index(string youtubePlaylistID)
         {
@@ -112,35 +113,53 @@ namespace Youtube2Spotify.Controllers
         /// <returns></returns>
         public ResultModel GetYoutubeInfo(string youtubePlaylistId)
         {
-            List<string> songNames = new List<string>();
-
-            //collect the list of videos from Json
-            JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-
-            foreach (dynamic musicResponsiveListItemRenderer in playlist)
+            try
             {
-                string name = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                List<string> artists = new List<string>();
+                youtubePlaylistTitleAndDescription = GenerateYoutubePlaylistTitleAndDescription(youtubePlaylistId);
+            }
+            catch
+            {
+                //something is weird with the youtubePlaylistId
+                return new ResultModel() { Unsupported = true, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
+            }
+            
+            try
+            {
+                List<string> songNames = new List<string>();
 
-                foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
+                //collect the list of videos from Json
+                JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
+
+                foreach (dynamic musicResponsiveListItemRenderer in playlist)
                 {
-                    string artistName = artistInfo.text.Value.ToString();
-                    if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
+                    string name = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
+                    List<string> artists = new List<string>();
+
+                    foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
                     {
-                        artists.Add(artistName);
+                        string artistName = artistInfo.text.Value.ToString();
+                        if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
+                        {
+                            artists.Add(artistName);
+                        }
                     }
+
+                    YoutubePlaylistItem info = YoutubePlaylistItemFactory.GetYoutubePlaylistItem(name, artists);
+                    string allArtistInfo = info.artists.Count() > 0 ? string.Join(", ", info.artists) + " - " : string.Empty;
+                    songNames.Add($"{allArtistInfo}{info.song}");
+
+                    YoutubePlaylistItems.Add(info);
                 }
 
-                YoutubePlaylistItem info = YoutubePlaylistItemFactory.GetYoutubePlaylistItem(name, artists);
-                string allArtistInfo = info.artists.Count() > 0 ? string.Join(", ", info.artists) + " - " : string.Empty;
-                songNames.Add($"{allArtistInfo}{info.song}");
-
-                YoutubePlaylistItems.Add(info);
+                // add total number of song names
+                // okay, we got the title, time to look it up on Spotify
+                return GenerateSpotifyPlaylist(youtubePlaylistTitleAndDescription, YoutubePlaylistItems, songNames, youtubePlaylistId);
             }
-
-            // add total number of song names
-            // okay, we got the title, time to look it up on Spotify
-            return GenerateSpotifyPlaylist(GenerateYoutubePlaylistTitleAndDescription(youtubePlaylistId), YoutubePlaylistItems, songNames);
+            catch
+            {
+                return new ResultModel() { ConversionFailed = true, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
+            }
+            
         }
 
         public YoutubePlaylistTitleAndDescription GenerateYoutubePlaylistTitleAndDescription(string playlistId)
@@ -192,10 +211,10 @@ namespace Youtube2Spotify.Controllers
         /// Generates a spotify playlist based on crawled music info from youtube
         /// </summary>
         /// <param name="youtubePlaylistItems"></param>
-        public ResultModel GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames)
+        public ResultModel GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames, string youtubePlaylistId)
         {
             ResultModel resultModel = new ResultModel();
-            resultModel.TotalVideoNames = songNames;
+            resultModel.YoutubeVideoNames = songNames;
             List<string> foundTracks = new List<string>();
             //create a playlist using the currently authenticated profile
             string newSpotifyPlaylistID = string.Empty;
@@ -252,8 +271,9 @@ namespace Youtube2Spotify.Controllers
             }
 
             AddTracksToPlaylist(newSpotifyPlaylistID, string.Join(",", trackString));
-            resultModel.CompletedNames = foundTracks;
+            resultModel.SpotifyTrackNames = foundTracks;
             resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+            resultModel.YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}";
             return resultModel;
         }
 

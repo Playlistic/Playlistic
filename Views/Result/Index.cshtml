@@ -4,24 +4,49 @@
     Layout = "_Layout";
 }
 
-@if (Model != null)
+<div>
+    @if (Model.ConversionFailed || Model.Unsupported)
+    {
+        if (@Model.Unsupported)
+        {
+            <h1>Failed to generate playlist</h1>
+            <p>Could not scrape the youtube playlist, check the Id you pasted is complete.<br /> Currently Youtube generated "Mix" playlist are also not supported</p>
+        }
+        else if (@Model.ConversionFailed)
+        {
+            <h1>Oof, the app failed to convert a legit youtube playlist</h1>
+            <p>Please inform the poor basterd who made this <br />his app isn't working <a href="mailto:sam.b5687@gmail.com">by sending him an email.</a><br /> Be sure to include the playlist id you used below</p>            
+        }
+        <h2>Original Youtube Playlist: </h2>
+        <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
+    }
+    else
+    {
+        <h1>Your Converted Spotify Playlist is Ready!</h1>
+        <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
+        <h2>Original Youtube Playlist: </h2>
+        <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
+    }
+</div>
+
+
+@if (!Model.ConversionFailed && !Model.Unsupported)
 {
     <table class="table">
         <thead>
             <tr>
                 <th scope="col">#</th>
-                <th scope="col">Youtube Videos Total: (@Model.TotalVideoNames.Count)</th>
-                <th scope="col">Spotify Tracks Total: Found: (@Model.CompletedNames.Where(x => !string.IsNullOrEmpty(x)).Count());</th>
+                <th scope="col">Youtube Videos Total: (@Model.YoutubeVideoNames.Count)</th>
+                <th scope="col">Spotify Tracks Total: Found: (@Model.SpotifyTrackNames.Where(x => !string.IsNullOrEmpty(x)).Count());</th>
             </tr>
         </thead>
         <tbody>
-
-            @for (int i = 0; i < Model.TotalVideoNames.Count; i++)
+            @for (int i = 0; i < Model.YoutubeVideoNames.Count; i++)
             {
                 <tr>
                     <th scope="row">@i</th>
-                    <td>@Model.TotalVideoNames[i]</td>
-                    <td>@Model.CompletedNames[i]</td>
+                    <td>@Model.YoutubeVideoNames[i]</td>
+                    <td>@Model.SpotifyTrackNames[i]</td>
 
                 </tr>
             }
@@ -33,15 +58,4 @@
 
 
 
-<div>
-    @if (Model == null)
-    {
-        <p>Failed to generate playlist</p>
-    }
-    else
-    {
-        <p>Your Converted Spotify Playlist is Ready!</p>
-        <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
-    }
-</div>
 
