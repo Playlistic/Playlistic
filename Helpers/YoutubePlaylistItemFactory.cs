@@ -22,7 +22,11 @@ namespace Youtube2Spotify.Helpers
             YoutubePlaylistItem youtubePlaylistItem = new YoutubePlaylistItem();
             youtubePlaylistItem.artists = new List<string>();
             bool ignorebrackets = false;
-            string cleanedSongName = string.Join(' ', song.ToLower().Split(' ').Select(x =>
+            song = song.ToLower();
+            song = song.Replace("- video edit", "");
+            song = song.Replace("closed caption", "");
+
+            string cleanedSongName = string.Join(' ', song.Split(' ').Select(x =>
             {
                 // I suck with regex so this the alternative
                 // the goal is to ignore everything that's between "(official" and "audio)"
@@ -32,9 +36,20 @@ namespace Youtube2Spotify.Helpers
                     return string.Empty;
                 }
 
+                if(x.Contains("(video"))
+                {
+                    ignorebrackets = true;
+                    return string.Empty;
+                }
+
                 if (x.Contains("audio)") || x.Contains("video)") || x.Contains("audio]") || x.Contains("video]"))
                 {
                     ignorebrackets = false;
+                    return string.Empty;
+                }
+
+                if(x.Contains("[clean]") || x.Contains("(clean)"))
+                {
                     return string.Empty;
                 }
 

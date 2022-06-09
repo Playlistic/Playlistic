@@ -43,8 +43,9 @@
         <tbody>
             @for (int i = 0; i < Model.YoutubeVideoNames.Count; i++)
             {
+                int j = i + 1;
                 <tr>
-                    <th scope="row">@i</th>
+                    <th scope="row">@j</th>
                     <td>@Model.YoutubeVideoNames[i]</td>
                     <td>@Model.SpotifyTrackNames[i]</td>
 
