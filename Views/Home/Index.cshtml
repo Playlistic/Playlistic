@@ -9,7 +9,9 @@
     <h1>TLDR: I need permission to make the playlist on your spotify account for you</h1>
 
     <form id="authBlock" method="post" asp-action="TriggerAuth" asp-controller="Auth">
-        <button type="submit">Authorize Spotify</button>
+        <div class="form-group">
+            <button class="btn btn-primary" type="submit">Authorize Spotify</button>
+        </div>
     </form>
 }
 
@@ -18,9 +20,15 @@
 {
 
     <h1>Enter a YouTube Playlist ID</h1>
+    
     <form method="get" asp-action="Index" asp-controller="Youtube2Spotify">
-        <input type="text" id="youtubePlaylistID" name="youtubePlaylistID" placeholder="RDCLAK5uy_kj3rhiar1LINmyDcuFnXihEO0K1NQa2jI" />
-        <button type="submit">Submit</button>
+        <div class="form-group">
+            <input class="form-control" type="text" id="youtubePlaylistID" name="youtubePlaylistID" placeholder="RDCLAK5uy_kj3rhiar1LINmyDcuFnXihEO0K1NQa2jI" />
+        </div>
+        <div class="form-group">
+            <button class="btn btn-primary" type="submit">Submit</button>
+        </div>
     </form>
+
 }
 
