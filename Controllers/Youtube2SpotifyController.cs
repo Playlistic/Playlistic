@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SpotifyAPI.Web;
 using Youtube2Spotify.Helpers;
 using Youtube2Spotify.Models;
 
@@ -32,18 +34,19 @@ namespace Youtube2Spotify.Controllers
             Environment = _environment;
         }
 
-        public string YoutubePlaylistID { get; set; }
-        public List<YoutubePlaylistItem> YoutubePlaylistItems = new List<YoutubePlaylistItem>();
-        YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription;
+        private string YoutubePlaylistID { get; set; }
+        private List<YoutubePlaylistItem> youtubePlaylistItems = new List<YoutubePlaylistItem>();
+        private YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription;
+        private SpotifyClient spotify;
 
-        public IActionResult Index(string youtubePlaylistID)
+        public async Task<IActionResult> Index(string youtubePlaylistID)
         {
             if (!string.IsNullOrEmpty(youtubePlaylistID) || !string.IsNullOrWhiteSpace(youtubePlaylistID))
             {
                 YoutubePlaylistID = youtubePlaylistID;
-                HttpContext.Session.SetString("user_Id", GetUserId());
-
-                return Result(GetYoutubeInfo(youtubePlaylistID));
+                HttpContext.Session.SetString("user_Id", await GetUserId());
+                ResultModel resultModel = await GetYoutubeInfo(youtubePlaylistID);
+                return Result(resultModel);
             }
 
             return Result();
@@ -111,7 +114,7 @@ namespace Youtube2Spotify.Controllers
         /// </summary>
         /// <param name="youtubePlaylistId"></param>
         /// <returns></returns>
-        public ResultModel GetYoutubeInfo(string youtubePlaylistId)
+        public async Task<ResultModel> GetYoutubeInfo(string youtubePlaylistId)
         {
             try
             {
@@ -122,7 +125,7 @@ namespace Youtube2Spotify.Controllers
                 //something is weird with the youtubePlaylistId
                 return new ResultModel() { Unsupported = true, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
             }
-            
+
             try
             {
                 List<string> songNames = new List<string>();
@@ -148,18 +151,18 @@ namespace Youtube2Spotify.Controllers
                     string allArtistInfo = info.artists.Count() > 0 ? string.Join(", ", info.artists) + " - " : string.Empty;
                     songNames.Add($"{allArtistInfo}{info.song}");
 
-                    YoutubePlaylistItems.Add(info);
+                    youtubePlaylistItems.Add(info);
                 }
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
-                return GenerateSpotifyPlaylist(youtubePlaylistTitleAndDescription, YoutubePlaylistItems, songNames, youtubePlaylistId);
+                return await GenerateSpotifyPlaylist(youtubePlaylistTitleAndDescription, youtubePlaylistItems, songNames, youtubePlaylistId);
             }
             catch
             {
                 return new ResultModel() { ConversionFailed = true, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
             }
-            
+
         }
 
         public YoutubePlaylistTitleAndDescription GenerateYoutubePlaylistTitleAndDescription(string playlistId)
@@ -211,61 +214,60 @@ namespace Youtube2Spotify.Controllers
         /// Generates a spotify playlist based on crawled music info from youtube
         /// </summary>
         /// <param name="youtubePlaylistItems"></param>
-        public ResultModel GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames, string youtubePlaylistId)
+        public async Task<ResultModel> GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames, string youtubePlaylistId)
         {
             ResultModel resultModel = new ResultModel();
             resultModel.YoutubeVideoNames = songNames;
             List<string> foundTracks = new List<string>();
+            List<string> trackString = new List<string>();
             //create a playlist using the currently authenticated profile
             string newSpotifyPlaylistID = string.Empty;
             string user_Id = HttpContext.Session.GetString("user_Id");
-            List<string> trackString = new List<string>();
-            string url = $"https://api.spotify.com/v1/users/{user_Id}/playlists";
+            string access_Token = HttpContext.Session.GetString("access_token");
 
-            string postData = "{";
-            postData += "\"name\": " + $"\"{youtubePlaylistTitleAndDescription.title}\",";
-            postData += "\"description\":" + $"\"{HttpUtility.HtmlEncode(youtubePlaylistTitleAndDescription.description)}\",";
-            postData += "\"public\": true";
-            postData += "}";
+            spotify = new SpotifyClient(access_Token);
+            //spotify.Playlists.Create(user_Id,)
 
-            using (HttpWebResponse response = MakeSpotifyPostRequest(url, postData))
-            {
-                if (response.StatusCode == HttpStatusCode.Created)
-                {
-                    using Stream stream = response.GetResponseStream();
-                    using StreamReader reader = new StreamReader(stream);
-                    string spotifyResponse = reader.ReadToEnd();
-                    dynamic json = JsonConvert.DeserializeObject(spotifyResponse);
-                    newSpotifyPlaylistID = json.uri;
-                    newSpotifyPlaylistID = newSpotifyPlaylistID.Replace("spotify:playlist:", "");
-                }
-            }
+            PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistTitleAndDescription.title);
+            playlistCreateRequest.Description = youtubePlaylistTitleAndDescription.description;
+
+            FullPlaylist fullPlaylist = await spotify.Playlists.Create(user_Id, playlistCreateRequest);
+
+            newSpotifyPlaylistID = fullPlaylist.Id;
 
             if (!string.IsNullOrEmpty(newSpotifyPlaylistID))
             {
                 foreach (YoutubePlaylistItem youtubePlaylistItem in youtubePlaylistItems)
                 {
-                    dynamic rightTrack = FindRightTrack(youtubePlaylistItem);
+                    SearchRequest searchRequest = new SearchRequest(SearchRequest.Types.Track, FormatSpotifySearchString(youtubePlaylistItem));
+                    searchRequest.Limit = 1;
 
-                    if (rightTrack == null)
+                    SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
+
+                    if (!searchResponse.Tracks.Total.HasValue)
+                    {
+                        //still add blank entry to make the list look nice
+                        foundTracks.Add("");
+                        continue;                        
+                    }
+
+                    if(!(searchResponse.Tracks.Total>0))
                     {
                         //still add blank entry to make the list look nice
                         foundTracks.Add("");
                         continue;
                     }
 
-                    JArray artists = rightTrack.artists;
+                    FullTrack fullTrack = searchResponse.Tracks.Items[0];
 
-                    List<string> artistNames = new List<string>();
+                    List<SimpleArtist> artists = fullTrack.Artists;
 
-                    foreach (dynamic artist in artists)
-                    {
-                        artistNames.Add(artist.name.ToString());
-                    }
+                    List<string> artistNames = artists.Select(x => x.Name).ToList();
 
-                    string songName = rightTrack.name.ToString();
 
-                    trackString.Add($"\"{rightTrack.uri.ToString()}\"");
+                    string songName = fullTrack.Name.ToString();
+
+                    trackString.Add($"\"{fullTrack.Uri}\"");
                     foundTracks.Add(FormatResultString(songName, artistNames));
                 }
             }
@@ -277,42 +279,17 @@ namespace Youtube2Spotify.Controllers
             return resultModel;
         }
 
-
-        private dynamic FindRightTrack(YoutubePlaylistItem youtubePlaylistItem)
-        {
-            string queryString = FormatSpotifySearchString(youtubePlaylistItem);
-            dynamic searchResult = GetTracks(queryString);
-
-            if (searchResult == null)
-            {
-                return null;
-            }
-
-            dynamic rightTrack = searchResult.tracks.items[0];
-            return rightTrack;
-        }
-
-
         private string FormatResultString(string song, List<string> artists)
         {
-            string songName = string.Empty;
-
-            songName += $"{string.Join(", ", artists)} - {song}";
-
-            return songName;
+            return $"{string.Join(", ", artists)} - {song}";
         }
 
         private string FormatSpotifySearchString(YoutubePlaylistItem youtubePlaylistItem)
         {
             StringBuilder queryBuilder = new StringBuilder();
-            queryBuilder.Append("https://api.spotify.com/v1/search?query=");
-            if (!string.IsNullOrEmpty(youtubePlaylistItem.song) && !string.IsNullOrWhiteSpace(youtubePlaylistItem.song))
-            {
-                string songName = youtubePlaylistItem.song;
-                queryBuilder.Append(HttpUtility.UrlEncode(string.Join(" ", youtubePlaylistItem.artists)));
-                queryBuilder.Append(HttpUtility.UrlEncode($" {songName}"));
-            }
-            queryBuilder.Append("&type=track&offset=0&limit=1");
+          
+            queryBuilder.Append(string.Join(" ", youtubePlaylistItem.artists));
+            queryBuilder.Append($" {youtubePlaylistItem.song}");
 
             return queryBuilder.ToString();
         }
@@ -328,59 +305,24 @@ namespace Youtube2Spotify.Controllers
             MakeSpotifyPostRequest(url, postData);
         }
 
-        public dynamic GetTracks(string requestString)
+        public async Task<string> GetUserId()
         {
-            dynamic search_result;
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestString);
-            request.Method = "GET";
-            request.Accept = "application/json";
-            request.ContentType = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + HttpContext.Session.GetString("access_token"));
-
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                search_result = reader.ReadToEnd();
-            }
-
-            dynamic json = JsonConvert.DeserializeObject(search_result);
-            if (json.tracks.items.Count > 0)
-            {
-                return json;
-            }
-            return null;
-
-        }
-
-        public string GetUserId()
-        {
-            dynamic user_Object;
             string user_Id = HttpContext.Session.GetString("user_id");
             // if we already stored the UserId in session, grab it and return it 
             if (!string.IsNullOrEmpty(user_Id))
             {
                 return user_Id;
             }
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("https://api.spotify.com/v1/me");
-            request.Method = "GET";
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            string token = HttpContext.Session.GetString("access_token");
-            request.Headers.Add("Authorization", "Bearer " + token);
 
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                user_Object = reader.ReadToEnd();
-            }
+            return await GetUserIdLive();
+        }
 
-            dynamic json = JsonConvert.DeserializeObject(user_Object);
-            user_Id = json.id;
-
-            return user_Id;
+        private async Task<string> GetUserIdLive()
+        {
+            string access_Token = HttpContext.Session.GetString("access_token");
+            spotify = new SpotifyClient(access_Token);
+            PrivateUser privateUser = await spotify.UserProfile.Current();
+            return privateUser.Id;
         }
     }
 }
