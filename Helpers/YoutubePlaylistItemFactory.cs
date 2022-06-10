@@ -36,9 +36,8 @@ namespace Youtube2Spotify.Helpers
                     return string.Empty;
                 }
 
-                if(x.Contains("(video"))
-                {
-                    ignorebrackets = true;
+                if(x.Contains("(video)") || x.Contains("(visualizer)"))
+                { 
                     return string.Empty;
                 }
 
