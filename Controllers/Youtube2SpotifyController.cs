@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -20,10 +21,11 @@ using Youtube2Spotify.Models;
 
 namespace Youtube2Spotify.Controllers
 {
-    public class YoutubePlaylistTitleAndDescription
+    public class YoutubePlaylistMetadata
     {
         public string title;
         public string description;
+        public string coverImageInBase64;
     }
     public class Youtube2SpotifyController : Controller
     {
@@ -36,7 +38,7 @@ namespace Youtube2Spotify.Controllers
 
         private string YoutubePlaylistID { get; set; }
         private List<YoutubePlaylistItem> youtubePlaylistItems = new List<YoutubePlaylistItem>();
-        private YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription;
+        private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
@@ -118,7 +120,7 @@ namespace Youtube2Spotify.Controllers
         {
             try
             {
-                youtubePlaylistTitleAndDescription = GenerateYoutubePlaylistTitleAndDescription(youtubePlaylistId);
+                youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(youtubePlaylistId);
             }
             catch
             {
@@ -156,7 +158,7 @@ namespace Youtube2Spotify.Controllers
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
-                return await GenerateSpotifyPlaylist(youtubePlaylistTitleAndDescription, youtubePlaylistItems, songNames, youtubePlaylistId);
+                return await GenerateSpotifyPlaylist(youtubePlaylistMetadata, youtubePlaylistItems, songNames, youtubePlaylistId);
             }
             catch
             {
@@ -165,16 +167,18 @@ namespace Youtube2Spotify.Controllers
 
         }
 
-        public YoutubePlaylistTitleAndDescription GenerateYoutubePlaylistTitleAndDescription(string playlistId)
+        public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(string playlistId)
         {
             string key = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[0];
 
-            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description))";
+            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
             dynamic json = MakeYoutubeGetCalls(url);
 
             string title = json.items[0].snippet.title;
             string description = json.items[0].snippet.description;
+            string coverArt = json.items[0].snippet.thumbnails.medium.url;
 
+            string base64ImageString = string.Empty;
             if (title.Length > 200)
             {
                 title = title.Substring(0, 200);
@@ -184,10 +188,21 @@ namespace Youtube2Spotify.Controllers
                 description = description.Substring(0, 200);
             }
 
-            return new YoutubePlaylistTitleAndDescription()
+            using (Stream stream = GetStreamFromUrl(coverArt))
+            {
+                using (var ms = new MemoryStream())
+                {
+                    stream.CopyTo(ms);
+                    byte [] fileBytes = ms.ToArray();
+                    base64ImageString = Convert.ToBase64String(fileBytes);
+                }
+            }
+
+            return new YoutubePlaylistMetadata()
             {
                 title = title,
-                description = description
+                description = description,
+                coverImageInBase64 = base64ImageString
             };
         }
 
@@ -214,7 +229,7 @@ namespace Youtube2Spotify.Controllers
         /// Generates a spotify playlist based on crawled music info from youtube
         /// </summary>
         /// <param name="youtubePlaylistItems"></param>
-        public async Task<ResultModel> GenerateSpotifyPlaylist(YoutubePlaylistTitleAndDescription youtubePlaylistTitleAndDescription, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames, string youtubePlaylistId)
+        public async Task<ResultModel> GenerateSpotifyPlaylist(YoutubePlaylistMetadata youtubePlaylistMetadata, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames, string youtubePlaylistId)
         {
             ResultModel resultModel = new ResultModel();
             resultModel.YoutubeVideoNames = songNames;
@@ -228,10 +243,12 @@ namespace Youtube2Spotify.Controllers
             spotify = new SpotifyClient(access_Token);
             //spotify.Playlists.Create(user_Id,)
 
-            PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistTitleAndDescription.title);
-            playlistCreateRequest.Description = youtubePlaylistTitleAndDescription.description;
+            PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistMetadata.title);
+            playlistCreateRequest.Description = youtubePlaylistMetadata.description;
 
             FullPlaylist fullPlaylist = await spotify.Playlists.Create(user_Id, playlistCreateRequest);
+            bool uploadCover = await spotify.Playlists.UploadCover(fullPlaylist.Id, youtubePlaylistMetadata.coverImageInBase64);
+
 
             newSpotifyPlaylistID = fullPlaylist.Id;
 
@@ -248,10 +265,10 @@ namespace Youtube2Spotify.Controllers
                     {
                         //still add blank entry to make the list look nice
                         foundTracks.Add("");
-                        continue;                        
+                        continue;
                     }
 
-                    if(!(searchResponse.Tracks.Total>0))
+                    if (!(searchResponse.Tracks.Total > 0))
                     {
                         //still add blank entry to make the list look nice
                         foundTracks.Add("");
@@ -278,6 +295,15 @@ namespace Youtube2Spotify.Controllers
             resultModel.YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}";
             return resultModel;
         }
+        private static Stream GetStreamFromUrl(string url)
+        {
+            byte[] imageData = null;
+
+            using (var wc = new System.Net.WebClient())
+                imageData = wc.DownloadData(url);
+
+            return new MemoryStream(imageData);
+        }
 
         private string FormatResultString(string song, List<string> artists)
         {
@@ -287,7 +313,7 @@ namespace Youtube2Spotify.Controllers
         private string FormatSpotifySearchString(YoutubePlaylistItem youtubePlaylistItem)
         {
             StringBuilder queryBuilder = new StringBuilder();
-          
+
             queryBuilder.Append(string.Join(" ", youtubePlaylistItem.artists));
             queryBuilder.Append($" {youtubePlaylistItem.song}");
 
