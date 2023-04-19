@@ -46,6 +46,8 @@ namespace Youtube2Spotify.Controllers
             if (!string.IsNullOrEmpty(youtubePlaylistID) || !string.IsNullOrWhiteSpace(youtubePlaylistID))
             {
                 YoutubePlaylistID = youtubePlaylistID;
+                string access_Token = HttpContext.Session.GetString("access_token");
+                spotify = new SpotifyClient(access_Token);
                 HttpContext.Session.SetString("user_Id", await GetUserId());
                 ResultModel resultModel = await GetYoutubeInfo(youtubePlaylistID);
                 return Result(resultModel);
@@ -237,11 +239,7 @@ namespace Youtube2Spotify.Controllers
             List<string> trackString = new List<string>();
             //create a playlist using the currently authenticated profile
             string newSpotifyPlaylistID = string.Empty;
-            string user_Id = HttpContext.Session.GetString("user_Id");
-            string access_Token = HttpContext.Session.GetString("access_token");
-
-            spotify = new SpotifyClient(access_Token);
-            //spotify.Playlists.Create(user_Id,)
+            string user_Id = HttpContext.Session.GetString("user_Id");          
 
             PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistMetadata.title);
             playlistCreateRequest.Description = youtubePlaylistMetadata.description;
@@ -299,7 +297,7 @@ namespace Youtube2Spotify.Controllers
         {
             byte[] imageData = null;
 
-            using (var wc = new System.Net.WebClient())
+            using (var wc = new WebClient())
                 imageData = wc.DownloadData(url);
 
             return new MemoryStream(imageData);
@@ -345,8 +343,6 @@ namespace Youtube2Spotify.Controllers
 
         private async Task<string> GetUserIdLive()
         {
-            string access_Token = HttpContext.Session.GetString("access_token");
-            spotify = new SpotifyClient(access_Token);
             PrivateUser privateUser = await spotify.UserProfile.Current();
             return privateUser.Id;
         }

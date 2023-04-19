@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using Youtube2Spotify.Helpers;
+using Youtube2Spotify.Service;
 
 namespace Youtube2Spotify.Controllers
 {
@@ -19,6 +20,7 @@ namespace Youtube2Spotify.Controllers
         string code_verifier;
         private string spotifyAppId;
         private IWebHostEnvironment Environment;
+        private readonly AuthRefresherService authRefresherService;
 
         public AuthController(IWebHostEnvironment _environment)
         {
@@ -89,6 +91,8 @@ namespace Youtube2Spotify.Controllers
                 }
                 SpotifyToken spotifyToken = JsonConvert.DeserializeObject<SpotifyToken>(html);
                 HttpContext.Session.SetString("access_token", spotifyToken.access_token);
+                HttpContext.Session.SetString("access_token", spotifyToken.refresh_token);
+                HttpContext.Session.SetString("expire_time", DateTime.Now.AddSeconds(spotifyToken.expires_in).ToString());
             }
 
             return Redirect("~/");
