@@ -89,7 +89,6 @@ namespace Youtube2Spotify.Controllers
                 }
                 SpotifyToken spotifyToken = JsonConvert.DeserializeObject<SpotifyToken>(html);
                 HttpContext.Session.SetString("access_token", spotifyToken.access_token);
-                HttpContext.Session.SetString("refresh_token", spotifyToken.refresh_token);
                 HttpContext.Session.SetString("expire_time", DateTime.Now.AddSeconds(spotifyToken.expires_in).ToString());
             }
 
