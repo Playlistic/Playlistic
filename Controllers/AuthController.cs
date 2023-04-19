@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using Youtube2Spotify.Helpers;
-using Youtube2Spotify.Service;
 
 namespace Youtube2Spotify.Controllers
 {
@@ -20,7 +19,6 @@ namespace Youtube2Spotify.Controllers
         string code_verifier;
         private string spotifyAppId;
         private IWebHostEnvironment Environment;
-        private readonly AuthRefresherService authRefresherService;
 
         public AuthController(IWebHostEnvironment _environment)
         {
