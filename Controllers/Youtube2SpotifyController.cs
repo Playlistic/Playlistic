@@ -43,17 +43,26 @@ namespace Youtube2Spotify.Controllers
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
-            if (!string.IsNullOrEmpty(youtubePlaylistID) || !string.IsNullOrWhiteSpace(youtubePlaylistID))
+            ResultModel resultModel = new ResultModel();
+            string access_Token = HttpContext.Session.GetString("access_token");
+            DateTime expire_Time = DateTime.Parse(HttpContext.Session.GetString("expire_time"));
+            if (DateTime.Now > expire_Time)
             {
-                YoutubePlaylistID = youtubePlaylistID;
-                string access_Token = HttpContext.Session.GetString("access_token");
-                spotify = new SpotifyClient(access_Token);
-                HttpContext.Session.SetString("user_Id", await GetUserId());
-                ResultModel resultModel = await GetYoutubeInfo(youtubePlaylistID);
+                resultModel.faultTriggered = true;
+                resultModel.faultCode = faultCode.AuthExpired;
                 return Result(resultModel);
             }
 
-            return Result();
+            spotify = new SpotifyClient(access_Token);
+            HttpContext.Session.SetString("user_Id", await GetUserId());
+
+            if (!string.IsNullOrEmpty(youtubePlaylistID) || !string.IsNullOrWhiteSpace(youtubePlaylistID))
+            {
+                YoutubePlaylistID = youtubePlaylistID;
+                resultModel = await GetYoutubeInfo(youtubePlaylistID);
+            }
+
+            return Result(resultModel);
         }
 
         public PartialViewResult Result(ResultModel result = null)
@@ -127,7 +136,7 @@ namespace Youtube2Spotify.Controllers
             catch
             {
                 //something is weird with the youtubePlaylistId
-                return new ResultModel() { Unsupported = true, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
+                return new ResultModel() { faultTriggered = true, faultCode = faultCode.Unspported, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
             }
 
             try
@@ -164,7 +173,7 @@ namespace Youtube2Spotify.Controllers
             }
             catch
             {
-                return new ResultModel() { ConversionFailed = true, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
+                return new ResultModel() { faultTriggered = true, faultCode = faultCode.ConversionFailed, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
             }
 
         }

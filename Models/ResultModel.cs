@@ -9,16 +9,21 @@ namespace Youtube2Spotify.Models
         public string SpotifyLink;
         public string YoutubeLink;
 
-        public bool Unsupported;
-        public bool ConversionFailed;
+        public bool faultTriggered;
+        public faultCode faultCode;
         public ResultModel()
         {
             YoutubeVideoNames = new List<string>();
             SpotifyTrackNames = new List<string>();
             SpotifyLink = string.Empty;
             YoutubeLink = string.Empty;
-            Unsupported = false;
-            ConversionFailed = false;
+            faultTriggered = false;
         }
+    }
+    public enum faultCode
+    {
+        Unspported,
+        ConversionFailed,
+        AuthExpired
     }
 }

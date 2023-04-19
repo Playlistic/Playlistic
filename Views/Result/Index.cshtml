@@ -5,33 +5,41 @@
 }
 
 <div>
-    @if (Model.ConversionFailed || Model.Unsupported)
+    @if (@Model.faultTriggered)
     {
-        if (@Model.Unsupported)
+        if (@Model.faultCode == faultCode.Unspported)
         {
             <h1>Failed to generate playlist</h1>
             <p>Could not scrape the youtube playlist, check the Id you pasted is complete.<br /> Currently Youtube generated "Mix" playlist are also not supported</p>
         }
-        else if (@Model.ConversionFailed)
+        else if (@Model.faultCode == faultCode.ConversionFailed)
         {
             <h1>Oof, the app failed to convert a legit youtube playlist</h1>
-            <p>Please inform the poor basterd who made this <br />his app isn't working <a href="mailto:sam.b5687@gmail.com">by sending him an email.</a><br /> Be sure to include the playlist id you used below</p>            
+            <p>Please inform the poor basterd who made this <br />his app isn't working <a href="mailto:sam.b5687@gmail.com">by sending him an email.</a><br /> Be sure to include the playlist id you used below</p>
+            <h2>Original Youtube Playlist: </h2>
+            <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
         }
-        <h2>Original Youtube Playlist: </h2>
-        <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
+        else if (@Model.faultCode == faultCode.AuthExpired)
+        {
+            <h2>So you took too long to find your playlist that your spotify authorization expired?</h2>
+            <h2>You'll need to reauthenticate with spotify, click the button below</h2>
+            <form id="authBlock" method="post" asp-action="TriggerAuth" asp-controller="Auth">
+                <div class="form-group">
+                    <button class="btn btn-primary" type="submit">Authorize Spotify</button>
+                </div>
+            </form>
+        }
     }
-    else
-    {
-        <h1>Your Converted Spotify Playlist is Ready!</h1>
-        <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
-        <h2>Original Youtube Playlist: </h2>
-        <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
-    }
+
 </div>
 
 
-@if (!Model.ConversionFailed && !Model.Unsupported)
+@if (!@Model.faultTriggered)
 {
+    <h1>Original Youtube Playlist: </h1>
+    <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
+    <h1>Your Converted Spotify Playlist is Ready!</h1>
+    <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
     <table class="table">
         <thead>
             <tr>
