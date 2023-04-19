@@ -23,11 +23,19 @@ namespace Youtube2Spotify.Controllers
             HomeModel homeModel = new HomeModel();
             homeModel.Authenticated = false;
             HttpContext.Session.TryGetValue("access_token", out byte[] access_token);
+            HttpContext.Session.TryGetValue("expire_time", out byte[] expire_time_raw);
 
-            if(access_token != null)
+           
+            if (access_token != null && expire_time_raw != null)
             {
-                homeModel.Authenticated = true;
+                DateTime expire_time = DateTime.Parse(new string(System.Text.Encoding.Default.GetString(expire_time_raw)));
+
+                if (DateTime.Now < expire_time)
+                {
+                    homeModel.Authenticated = true;
+                }
             }
+
             return View(homeModel);
         }
 
