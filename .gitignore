@@ -1,4 +1,5 @@
 wwwroot/Secret.txt
+wwwroot/OpenAISecret.txt
 bin/
 .vs/
 obj/
