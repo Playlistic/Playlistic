@@ -27,6 +27,7 @@ namespace Youtube2Spotify.Controllers
         public string description;
         public string coverImageInBase64;
     }
+
     public class Youtube2SpotifyController : Controller
     {
         private IWebHostEnvironment Environment;
@@ -146,26 +147,9 @@ namespace Youtube2Spotify.Controllers
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
 
-                foreach (dynamic musicResponsiveListItemRenderer in playlist)
-                {
-                    string name = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                    List<string> artists = new List<string>();
+                List<YoutubePlaylistItem> OpenAIReadyInputList = FormatYoutubeRawDataForAIConsumption(playlist);
+                
 
-                    foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
-                    {
-                        string artistName = artistInfo.text.Value.ToString();
-                        if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
-                        {
-                            artists.Add(artistName);
-                        }
-                    }
-
-                    YoutubePlaylistItem info = YoutubePlaylistItemFactory.GetYoutubePlaylistItem(name, artists);
-                    string allArtistInfo = info.artists.Count() > 0 ? string.Join(", ", info.artists) + " - " : string.Empty;
-                    songNames.Add($"{allArtistInfo}{info.song}");
-
-                    youtubePlaylistItems.Add(info);
-                }
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
@@ -215,6 +199,27 @@ namespace Youtube2Spotify.Controllers
                 description = description,
                 coverImageInBase64 = base64ImageString
             };
+        }
+        private List<YoutubePlaylistItem> FormatYoutubeRawDataForAIConsumption (JArray incomingRawYoutubeMusicPlaylistData)
+        {
+            List<YoutubePlaylistItem> OpenAIInput = new List<YoutubePlaylistItem>();
+            foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
+            {
+                string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
+                List<string> songArtists = new List<string>();
+
+                foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
+                {
+                    string artistName = artistInfo.text.Value.ToString();
+                    if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
+                    {
+                        songArtists.Add(artistName);
+                    }
+                }
+                OpenAIInput.Add(new YoutubePlaylistItem() { song = songName, artists = songArtists });
+
+            }
+            return OpenAIInput;
         }
 
         private HttpWebResponse MakeSpotifyPostRequest(string url, string postData)
