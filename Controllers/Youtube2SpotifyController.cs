@@ -217,25 +217,6 @@ namespace Youtube2Spotify.Controllers
             };
         }
 
-        private HttpWebResponse MakeSpotifyPostRequest(string url, string postData)
-        {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            var data = Encoding.ASCII.GetBytes(postData);
-
-            request.ContentLength = data.Length;
-            request.Method = "POST";
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + HttpContext.Session.GetString("access_token"));
-
-            using (var stream = request.GetRequestStream())
-            {
-                stream.Write(data, 0, data.Length);
-            }
-
-            return (HttpWebResponse)request.GetResponse();
-        }
-
         /// <summary>
         /// Generates a spotify playlist based on crawled music info from youtube
         /// </summary>
@@ -335,7 +316,7 @@ namespace Youtube2Spotify.Controllers
             postData += "\"uris\": " + $"[{tracksToAdd}]";
             postData += "}";
 
-            MakeSpotifyPostRequest(url, postData);
+            HttpHelpers.MakeSpotifyPostRequest(url, postData, HttpContext.Session.GetString("access_token"));
         }
 
         public async Task<string> GetUserId()
