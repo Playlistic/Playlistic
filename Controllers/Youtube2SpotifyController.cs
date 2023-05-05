@@ -147,7 +147,7 @@ namespace Youtube2Spotify.Controllers
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
 
-                List<YoutubePlaylistItem> OpenAIReadyInputList = FormatYoutubeRawDataForAIConsumption(playlist);
+                List<string> OpenAIReadyInputList = FormatYoutubeRawDataForAIConsumption(playlist);
                 
 
 
@@ -200,45 +200,26 @@ namespace Youtube2Spotify.Controllers
                 coverImageInBase64 = base64ImageString
             };
         }
-        private List<YoutubePlaylistItem> FormatYoutubeRawDataForAIConsumption (JArray incomingRawYoutubeMusicPlaylistData)
+        private List<string> FormatYoutubeRawDataForAIConsumption (JArray incomingRawYoutubeMusicPlaylistData)
         {
-            List<YoutubePlaylistItem> OpenAIInput = new List<YoutubePlaylistItem>();
+            List<string> OpenAIInput = new List<string>();
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                List<string> songArtists = new List<string>();
+                string songArtists = string.Empty;
 
                 foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
                 {
                     string artistName = artistInfo.text.Value.ToString();
                     if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
                     {
-                        songArtists.Add(artistName);
+                        songArtists = artistName;
                     }
                 }
-                OpenAIInput.Add(new YoutubePlaylistItem() { song = songName, artists = songArtists });
+                OpenAIInput.Add(string.IsNullOrEmpty(songArtists)? $"{songName}" : $"{songName} {songArtists}");
 
             }
             return OpenAIInput;
-        }
-
-        private HttpWebResponse MakeSpotifyPostRequest(string url, string postData)
-        {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            var data = Encoding.ASCII.GetBytes(postData);
-
-            request.ContentLength = data.Length;
-            request.Method = "POST";
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + HttpContext.Session.GetString("access_token"));
-
-            using (var stream = request.GetRequestStream())
-            {
-                stream.Write(data, 0, data.Length);
-            }
-
-            return (HttpWebResponse)request.GetResponse();
         }
 
         /// <summary>
@@ -340,7 +321,7 @@ namespace Youtube2Spotify.Controllers
             postData += "\"uris\": " + $"[{tracksToAdd}]";
             postData += "}";
 
-            MakeSpotifyPostRequest(url, postData);
+            HttpHelpers.MakeSpotifyPostRequest(url, postData, HttpContext.Session.GetString("access_token"));
         }
 
         public async Task<string> GetUserId()
