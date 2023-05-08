@@ -3,3 +3,4 @@ wwwroot/OpenAISecret.txt
 bin/
 .vs/
 obj/
+wwwroot/OpenAIPrompt.txt

@@ -9,16 +9,16 @@ namespace Youtube2Spotify.Helpers
 {
     public static class HttpHelpers
     {
-        public static HttpWebResponse MakeSpotifyPostRequest(string url, string postData, string token)
+        public static HttpWebResponse MakePostRequest(string url, string postData, string token)
         {
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            var data = Encoding.ASCII.GetBytes(postData);
-
+            var data = Encoding.UTF8.GetBytes(postData);
             request.ContentLength = data.Length;
             request.Method = "POST";
-            request.ContentType = "application/json";
+            request.ContentType = "application/json;charset=utf-8";
             request.Accept = "application/json";
             request.Headers.Add("Authorization", "Bearer " + token);
+            request.Timeout = 300000;
 
             using (var stream = request.GetRequestStream())
             {

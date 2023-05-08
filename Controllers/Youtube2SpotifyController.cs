@@ -31,17 +31,17 @@ namespace Youtube2Spotify.Controllers
     public class Youtube2SpotifyController : Controller
     {
         private IWebHostEnvironment Environment;
-
         public Youtube2SpotifyController(IWebHostEnvironment _environment)
         {
             Environment = _environment;
+            openAIAccessToken = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAISecret.txt")[0];
         }
 
         private string YoutubePlaylistID { get; set; }
         private List<YoutubePlaylistItem> youtubePlaylistItems = new List<YoutubePlaylistItem>();
         private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
-
+        private string openAIAccessToken;
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
             ResultModel resultModel = new ResultModel();
@@ -147,16 +147,39 @@ namespace Youtube2Spotify.Controllers
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
 
-                List<string> OpenAIReadyInputList = FormatYoutubeRawDataForAIConsumption(playlist);
-                
+                string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(playlist);
+                string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
+                string AISystemPostRequestBody = $"{{" +
+                                                        $"\"model\": \"gpt-3.5-turbo\"," +
+                                                        $"\"messages\": [" +
+                                                                            $"{{ \"role\": \"system\"," +
+                                                                            $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
+                                                                            $"}}" +
+                                                                            ","+
+                                                                            $"{{ \"role\": \"user\"," +
+                                                                            $"   \"content\": \"{ OpenAIReadyInputListString }\"" +
+                                                                            $"}}" +
+                                                                      $"]" +
+                                                 $"}}";
 
-
+                string AIPlaylistGenerationResponse = string.Empty;
+                HttpWebResponse systemSetupResponse = HttpHelpers.MakePostRequest("https://api.openai.com/v1/chat/completions", AISystemPostRequestBody, openAIAccessToken);
+                if (systemSetupResponse.StatusCode == HttpStatusCode.OK)
+                {
+                    using (Stream stream = systemSetupResponse.GetResponseStream())
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        AIPlaylistGenerationResponse = reader.ReadToEnd();
+                    }
+                }
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
                 return await GenerateSpotifyPlaylist(youtubePlaylistMetadata, youtubePlaylistItems, songNames, youtubePlaylistId);
             }
-            catch
+            catch (Exception exception)
             {
+                Console.WriteLine(exception.Message);
+                Console.WriteLine(exception.StackTrace);
                 return new ResultModel() { faultTriggered = true, faultCode = faultCode.ConversionFailed, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
             }
 
@@ -188,7 +211,7 @@ namespace Youtube2Spotify.Controllers
                 using (var ms = new MemoryStream())
                 {
                     stream.CopyTo(ms);
-                    byte [] fileBytes = ms.ToArray();
+                    byte[] fileBytes = ms.ToArray();
                     base64ImageString = Convert.ToBase64String(fileBytes);
                 }
             }
@@ -200,7 +223,7 @@ namespace Youtube2Spotify.Controllers
                 coverImageInBase64 = base64ImageString
             };
         }
-        private List<string> FormatYoutubeRawDataForAIConsumption (JArray incomingRawYoutubeMusicPlaylistData)
+        private string FormatYoutubeRawDataForAIConsumption(JArray incomingRawYoutubeMusicPlaylistData)
         {
             List<string> OpenAIInput = new List<string>();
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
@@ -216,10 +239,10 @@ namespace Youtube2Spotify.Controllers
                         songArtists = artistName;
                     }
                 }
-                OpenAIInput.Add(string.IsNullOrEmpty(songArtists)? $"{songName}" : $"{songName} {songArtists}");
+                OpenAIInput.Add(string.IsNullOrEmpty(songArtists) ? $"{songName}" : $"{songName} ## {songArtists}");
 
             }
-            return OpenAIInput;
+            return string.Join(";", OpenAIInput);
         }
 
         /// <summary>
@@ -234,7 +257,7 @@ namespace Youtube2Spotify.Controllers
             List<string> trackString = new List<string>();
             //create a playlist using the currently authenticated profile
             string newSpotifyPlaylistID = string.Empty;
-            string user_Id = HttpContext.Session.GetString("user_Id");          
+            string user_Id = HttpContext.Session.GetString("user_Id");
 
             PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistMetadata.title);
             playlistCreateRequest.Description = youtubePlaylistMetadata.description;
@@ -254,14 +277,7 @@ namespace Youtube2Spotify.Controllers
 
                     SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
 
-                    if (!searchResponse.Tracks.Total.HasValue)
-                    {
-                        //still add blank entry to make the list look nice
-                        foundTracks.Add("");
-                        continue;
-                    }
-
-                    if (!(searchResponse.Tracks.Total > 0))
+                    if (!searchResponse.Tracks.Total.HasValue || !(searchResponse.Tracks.Total > 0))
                     {
                         //still add blank entry to make the list look nice
                         foundTracks.Add("");
@@ -321,7 +337,7 @@ namespace Youtube2Spotify.Controllers
             postData += "\"uris\": " + $"[{tracksToAdd}]";
             postData += "}";
 
-            HttpHelpers.MakeSpotifyPostRequest(url, postData, HttpContext.Session.GetString("access_token"));
+            HttpHelpers.MakePostRequest(url, postData, HttpContext.Session.GetString("access_token"));
         }
 
         public async Task<string> GetUserId()
