@@ -6,7 +6,10 @@ namespace Youtube2Spotify.Helpers
     public class YoutubePlaylistItem
     {
         public string song;
-        public List<string> artists;
+        public string artist;
+        public string featured_artist;
+        public string producer;
+
     }
 
     public static class YoutubePlaylistItemFactory
@@ -17,10 +20,10 @@ namespace Youtube2Spotify.Helpers
         /// <param name="song">original title from youtube video, we will need to massage it a bit</param>
         /// <param name="artist">original channel title, we will need to massage it a bit, might or might not need it during actual search since many music MV include artist name in the title</param>
         /// <returns></returns>
-        public static YoutubePlaylistItem GetYoutubePlaylistItem(string song, List<string> artists)
+        public static YoutubePlaylistItem GetYoutubePlaylistItem(string song, string artist)
         {
             YoutubePlaylistItem youtubePlaylistItem = new YoutubePlaylistItem();
-            youtubePlaylistItem.artists = new List<string>();
+            youtubePlaylistItem.artist = string.Empty;
             bool ignorebrackets = false;
             song = song.ToLower();
             song = song.Replace("- video edit", "");
@@ -66,11 +69,7 @@ namespace Youtube2Spotify.Helpers
 
             if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
             {
-                foreach (string artist in artists)
-                {
-                    string artistNameLowered = artist.ToLower();
-                    youtubePlaylistItem.artists.Add(artistNameLowered);
-                }
+                youtubePlaylistItem.artist = artist.ToLower();
             }          
             
             youtubePlaylistItem.song = cleanedSongName;

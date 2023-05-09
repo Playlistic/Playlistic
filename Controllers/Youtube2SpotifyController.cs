@@ -157,7 +157,7 @@ namespace Youtube2Spotify.Controllers
                                                                             $"}}" +
                                                                             ","+
                                                                             $"{{ \"role\": \"user\"," +
-                                                                            $"   \"content\": \"{ OpenAIReadyInputListString }\"" +
+                                                                            $"   \"content\": \"{OpenAIReadyInputListString}\"" +
                                                                             $"}}" +
                                                                       $"]" +
                                                  $"}}";
@@ -170,6 +170,9 @@ namespace Youtube2Spotify.Controllers
                     using (StreamReader reader = new StreamReader(stream))
                     {
                         AIPlaylistGenerationResponse = reader.ReadToEnd();
+                        OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
+                        string rawResult = openAIResult.choices[0].message.content;
+                        dynamic testlist = JsonConvert.DeserializeObject(rawResult);
                     }
                 }
                 // add total number of song names
@@ -323,7 +326,7 @@ namespace Youtube2Spotify.Controllers
         {
             StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.Append(string.Join(" ", youtubePlaylistItem.artists));
+            queryBuilder.Append(string.Join(" ", youtubePlaylistItem.artist));
             queryBuilder.Append($" {youtubePlaylistItem.song}");
 
             return queryBuilder.ToString();
