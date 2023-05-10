@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Youtube2Spotify.Helpers;
 
 namespace Youtube2Spotify.Models
 {
@@ -20,17 +22,20 @@ namespace Youtube2Spotify.Models
         public int completion_tokens { get; set; }
         public int total_tokens { get; set; }
     }
-
     public class Choice
     {
         public Message message { get; set; }
         public string finish_reason { get; set; }
         public int index { get; set; }
     }
-
     public class Message
     {
         public string role { get; set; }
         public string content { get; set; }
+    }
+    public class JsonAIResult
+    {
+        [JsonProperty]
+        public List<YoutubePlaylistItem> youtubePlaylistItems;
     }
 }

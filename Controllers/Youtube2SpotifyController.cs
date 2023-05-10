@@ -151,6 +151,11 @@ namespace Youtube2Spotify.Controllers
                 string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
                 string AISystemPostRequestBody = $"{{" +
                                                         $"\"model\": \"gpt-3.5-turbo\"," +
+                                                        $"\"temperature\": 0," +
+                                                        $"\"top_p\": 0," +
+                                                        $"\"max_tokens\": 2048," +
+                                                        $"\"frequency_penalty\": 0," +
+                                                        $"\"presence_penalty\": 0," +
                                                         $"\"messages\": [" +
                                                                             $"{{ \"role\": \"system\"," +
                                                                             $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
@@ -172,7 +177,9 @@ namespace Youtube2Spotify.Controllers
                         AIPlaylistGenerationResponse = reader.ReadToEnd();
                         OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
                         string rawResult = openAIResult.choices[0].message.content;
-                        dynamic testlist = JsonConvert.DeserializeObject(rawResult);
+                        rawResult = $"{{ youtubePlaylistItems:[{rawResult}]}}";
+                        JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
+                        youtubePlaylistItems = jsonAIResult.youtubePlaylistItems;
                     }
                 }
                 // add total number of song names
@@ -242,10 +249,10 @@ namespace Youtube2Spotify.Controllers
                         songArtists = artistName;
                     }
                 }
-                OpenAIInput.Add(string.IsNullOrEmpty(songArtists) ? $"{songName}" : $"{songName} ## {songArtists}");
+                OpenAIInput.Add(string.IsNullOrEmpty(songArtists) ? $"{songName}" : $"## {songArtists} {songName}");
 
             }
-            return string.Join(";", OpenAIInput);
+            return string.Join("; ", OpenAIInput);
         }
 
         /// <summary>
