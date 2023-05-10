@@ -146,7 +146,6 @@ namespace Youtube2Spotify.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-
                 string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(playlist);
                 string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
                 string AISystemPostRequestBody = $"{{" +
@@ -239,17 +238,10 @@ namespace Youtube2Spotify.Controllers
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                string songArtists = string.Empty;
+                string songArtists = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
 
-                foreach (dynamic artistInfo in musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs)
-                {
-                    string artistName = artistInfo.text.Value.ToString();
-                    if (((JObject)artistInfo).Count > 1 && artistName.Length > 1)
-                    {
-                        songArtists = artistName;
-                    }
-                }
-                OpenAIInput.Add(string.IsNullOrEmpty(songArtists) ? $"{songName}" : $"## {songArtists} {songName}");
+
+                OpenAIInput.Add($"## {songArtists} {songName}");
 
             }
             return string.Join("; ", OpenAIInput);
