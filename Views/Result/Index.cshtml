@@ -36,9 +36,10 @@
 
 @if (!@Model.faultTriggered)
 {
-    <h1>Original Youtube Playlist: </h1>
-    <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
     <h1>Your Converted Spotify Playlist is Ready!</h1>
+    <h2>Original Youtube Playlist: </h2>
+    <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
+    <h2>New Spotify Playlist: </h2>
     <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
     <table class="table">
         <thead>
