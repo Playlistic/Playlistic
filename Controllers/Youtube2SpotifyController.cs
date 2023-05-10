@@ -146,7 +146,8 @@ namespace Youtube2Spotify.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-                string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(playlist);
+                songNames = GetVideoNameAndArtistName(playlist);
+                string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
                 string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
                 string AISystemPostRequestBody = $"{{" +
                                                         $"\"model\": \"gpt-3.5-turbo\"," +
@@ -232,17 +233,25 @@ namespace Youtube2Spotify.Controllers
                 coverImageInBase64 = base64ImageString
             };
         }
-        private string FormatYoutubeRawDataForAIConsumption(JArray incomingRawYoutubeMusicPlaylistData)
+
+        private List<string> GetVideoNameAndArtistName(JArray incomingRawYoutubeMusicPlaylistData)
         {
-            List<string> OpenAIInput = new List<string>();
+            List<string> OriginalYoutubeData = new List<string>();
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
                 string songArtists = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
+                OriginalYoutubeData.Add($"{songArtists} {songName}");
+            }
+            return OriginalYoutubeData;
+        }
 
-
-                OpenAIInput.Add($"## {songArtists} {songName}");
-
+        private string FormatYoutubeRawDataForAIConsumption(List<string> incomingYoutubeData)
+        {
+            List<string> OpenAIInput = new List<string>();
+            foreach (string originalYoutubeData in incomingYoutubeData)
+            {            
+                OpenAIInput.Add($"## {originalYoutubeData}");
             }
             return string.Join("; ", OpenAIInput);
         }
