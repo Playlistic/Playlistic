@@ -130,6 +130,7 @@ namespace Youtube2Spotify.Controllers
         /// <returns></returns>
         public async Task<ResultModel> GetYoutubeInfo(string youtubePlaylistId)
         {
+            ResultModel resultModel = new ResultModel();
             try
             {
                 youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(youtubePlaylistId);
@@ -146,7 +147,9 @@ namespace Youtube2Spotify.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-                songNames = GetVideoNameAndArtistName(playlist);
+                //cutting list down to 25 because of ChatGPT text limit
+                songNames = GetVideoNameAndArtistName(playlist).GetRange(0, 25);
+                resultModel.YoutubeVideoNames = songNames;
                 string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
                 string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
                 string AISystemPostRequestBody = $"{{" +
@@ -160,7 +163,7 @@ namespace Youtube2Spotify.Controllers
                                                                             $"{{ \"role\": \"system\"," +
                                                                             $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
                                                                             $"}}" +
-                                                                            ","+
+                                                                            "," +
                                                                             $"{{ \"role\": \"user\"," +
                                                                             $"   \"content\": \"{OpenAIReadyInputListString}\"" +
                                                                             $"}}" +
@@ -184,7 +187,18 @@ namespace Youtube2Spotify.Controllers
                 }
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
-                return await GenerateSpotifyPlaylist(youtubePlaylistMetadata, youtubePlaylistItems, songNames, youtubePlaylistId);
+                string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
+                await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
+                List<FullTrack> foundTracks = await SearchForSongsOnSpotify(youtubePlaylistItems);
+
+                resultModel.SpotifyTrackNames = foundTracks.Select(x =>
+                {
+                    return ($"{string.Join(",", x.Artists.Select(y => y.Name).ToList())} - {x.Name} - { x.Album.Name}");
+                }).ToList();
+
+                resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+                resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
+                return resultModel;
             }
             catch (Exception exception)
             {
@@ -250,22 +264,18 @@ namespace Youtube2Spotify.Controllers
         {
             List<string> OpenAIInput = new List<string>();
             foreach (string originalYoutubeData in incomingYoutubeData)
-            {            
+            {
                 OpenAIInput.Add($"## {originalYoutubeData}");
             }
             return string.Join("; ", OpenAIInput);
         }
 
         /// <summary>
-        /// Generates a spotify playlist based on crawled music info from youtube
+        /// Creates an Empty Playlist
         /// </summary>
         /// <param name="youtubePlaylistItems"></param>
-        public async Task<ResultModel> GenerateSpotifyPlaylist(YoutubePlaylistMetadata youtubePlaylistMetadata, List<YoutubePlaylistItem> youtubePlaylistItems, List<string> songNames, string youtubePlaylistId)
+        public async Task<string> CreateEmptyPlayListOnSpotify(YoutubePlaylistMetadata youtubePlaylistMetadata)
         {
-            ResultModel resultModel = new ResultModel();
-            resultModel.YoutubeVideoNames = songNames;
-            List<string> foundTracks = new List<string>();
-            List<string> trackString = new List<string>();
             //create a playlist using the currently authenticated profile
             string newSpotifyPlaylistID = string.Empty;
             string user_Id = HttpContext.Session.GetString("user_Id");
@@ -274,47 +284,73 @@ namespace Youtube2Spotify.Controllers
             playlistCreateRequest.Description = youtubePlaylistMetadata.description;
 
             FullPlaylist fullPlaylist = await spotify.Playlists.Create(user_Id, playlistCreateRequest);
-            bool uploadCover = await spotify.Playlists.UploadCover(fullPlaylist.Id, youtubePlaylistMetadata.coverImageInBase64);
+            return fullPlaylist.Id;
+        }
+        /// <summary>
+        /// Uploads playlist cover to specified 
+        /// </summary>
+        /// <param name="SpotifyPlaylistId"></param>
+        /// <returns></returns>
+        public async Task<bool> UploadCoverToPlaylist(string SpotifyPlaylistId, YoutubePlaylistMetadata youtubePlaylistMetadata)
+        {
+            bool uploadCover = await spotify.Playlists.UploadCover(SpotifyPlaylistId, youtubePlaylistMetadata.coverImageInBase64);
+            return uploadCover;
+        }
 
+        /// <summary>
+        /// returns a list of corresponding track on spotify based on the list of youtube playlist items
+        /// </summary>
+        /// <param name="youtubePlaylistItems">incoming list of youtube videos</param>
+        /// <returns></returns>
+        public async Task<List<FullTrack>> SearchForSongsOnSpotify(List<YoutubePlaylistItem> youtubePlaylistItems)
+        {
+            List<FullTrack> foundTracks = new List<FullTrack>();
 
-            newSpotifyPlaylistID = fullPlaylist.Id;
-
-            if (!string.IsNullOrEmpty(newSpotifyPlaylistID))
+            foreach (YoutubePlaylistItem youtubePlaylistItem in youtubePlaylistItems)
             {
-                foreach (YoutubePlaylistItem youtubePlaylistItem in youtubePlaylistItems)
+                SearchRequest searchRequest = new SearchRequest(SearchRequest.Types.Track, FormatSpotifySearchString(youtubePlaylistItem));
+                searchRequest.Limit = 1;
+
+                SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
+
+                if (!searchResponse.Tracks.Total.HasValue || !(searchResponse.Tracks.Total > 0))
                 {
-                    SearchRequest searchRequest = new SearchRequest(SearchRequest.Types.Track, FormatSpotifySearchString(youtubePlaylistItem));
-                    searchRequest.Limit = 1;
-
-                    SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
-
-                    if (!searchResponse.Tracks.Total.HasValue || !(searchResponse.Tracks.Total > 0))
+                    //still add blank entry to make the list look nice
+                    foundTracks.Add(null);
+                    continue;
+                }
+                if (searchResponse.Tracks.Items != null)
+                {
+                    if (searchResponse.Tracks.Items.Count > 0)
                     {
-                        //still add blank entry to make the list look nice
-                        foundTracks.Add("");
-                        continue;
+                        FullTrack fullTrack = searchResponse.Tracks.Items[0];
+                        foundTracks.Add(fullTrack);
                     }
-
-                    FullTrack fullTrack = searchResponse.Tracks.Items[0];
-
-                    List<SimpleArtist> artists = fullTrack.Artists;
-
-                    List<string> artistNames = artists.Select(x => x.Name).ToList();
-
-
-                    string songName = fullTrack.Name.ToString();
-
-                    trackString.Add($"\"{fullTrack.Uri}\"");
-                    foundTracks.Add(FormatResultString(songName, artistNames));
                 }
             }
-
-            AddTracksToPlaylist(newSpotifyPlaylistID, string.Join(",", trackString));
-            resultModel.SpotifyTrackNames = foundTracks;
-            resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
-            resultModel.YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}";
-            return resultModel;
+            return foundTracks; 
         }
+        public async Task<bool> AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd)
+        {
+            List<string> trackURI = new List<string>();
+
+            foreach (FullTrack fullTrack in tracksToAdd)
+            {
+                List<SimpleArtist> artists = fullTrack.Artists;
+                List<string> artistNames = artists.Select(x => x.Name).ToList();
+                string songName = fullTrack.Name.ToString();
+                trackURI.Add($"\"{fullTrack.Uri}\"");
+                //foundTracks.Add(FormatResultString(songName, artistNames));
+            }
+
+            HttpWebResponse httpWebResponse = AddTracksToPlaylist(spotifyPlaylistId, string.Join(",", trackURI));
+            if (httpWebResponse.StatusCode == HttpStatusCode.OK)
+            {
+                return true;
+            }
+            return false;
+        }
+
         private static Stream GetStreamFromUrl(string url)
         {
             byte[] imageData = null;
@@ -340,7 +376,7 @@ namespace Youtube2Spotify.Controllers
             return queryBuilder.ToString();
         }
 
-        public void AddTracksToPlaylist(string newSpotifyPlaylistID, string tracksToAdd)
+        public HttpWebResponse AddTracksToPlaylist(string newSpotifyPlaylistID, string tracksToAdd)
         {
             string url = $"https://api.spotify.com/v1/playlists/{newSpotifyPlaylistID}/tracks";
 
@@ -348,7 +384,7 @@ namespace Youtube2Spotify.Controllers
             postData += "\"uris\": " + $"[{tracksToAdd}]";
             postData += "}";
 
-            HttpHelpers.MakePostRequest(url, postData, HttpContext.Session.GetString("access_token"));
+            return HttpHelpers.MakePostRequest(url, postData, HttpContext.Session.GetString("access_token"));
         }
 
         public async Task<string> GetUserId()
