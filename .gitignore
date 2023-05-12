@@ -4,3 +4,4 @@ bin/
 .vs/
 obj/
 wwwroot/OpenAIPrompt.txt
+wwwroot/OpenAIPrompt.txt.bak

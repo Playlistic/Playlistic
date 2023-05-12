@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Web;
-using AngleSharp.Dom;
+﻿using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using Microsoft.AspNetCore.Hosting;
@@ -16,6 +7,15 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SpotifyAPI.Web;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Web;
 using Youtube2Spotify.Helpers;
 using Youtube2Spotify.Models;
 
@@ -35,13 +35,15 @@ namespace Youtube2Spotify.Controllers
         {
             Environment = _environment;
             openAIAccessToken = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAISecret.txt")[0];
+            openAISystemSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
         }
 
         private string YoutubePlaylistID { get; set; }
-        private List<YoutubePlaylistItem> youtubePlaylistItems = new List<YoutubePlaylistItem>();
         private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
         private string openAIAccessToken;
+        private string openAISystemSetupString;
+
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
             ResultModel resultModel = new ResultModel();
@@ -60,7 +62,7 @@ namespace Youtube2Spotify.Controllers
             if (!string.IsNullOrEmpty(youtubePlaylistID) || !string.IsNullOrWhiteSpace(youtubePlaylistID))
             {
                 YoutubePlaylistID = youtubePlaylistID;
-                resultModel = await GetYoutubeInfo(youtubePlaylistID);
+                resultModel = await ConvertYoutubePlaylist2SpotifyPlaylist(youtubePlaylistID);
             }
 
             return Result(resultModel);
@@ -112,9 +114,11 @@ namespace Youtube2Spotify.Controllers
         /// </summary>
         /// <param name="youtubePlaylistId"></param>
         /// <returns></returns>
-        public async Task<ResultModel> GetYoutubeInfo(string youtubePlaylistId)
+        public async Task<ResultModel> ConvertYoutubePlaylist2SpotifyPlaylist(string youtubePlaylistId)
         {
             ResultModel resultModel = new ResultModel();
+            List<YoutubePlaylistItem> youtubePlaylistItems = new List<YoutubePlaylistItem>();
+
             try
             {
                 youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(youtubePlaylistId);
@@ -131,57 +135,33 @@ namespace Youtube2Spotify.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-                //cutting list down to 25 because of ChatGPT text limit
-                songNames = GetVideoNameAndArtistName(playlist).GetRange(0, 25);
+                //cutting list down to 12 because of ChatGPT text limit
+                youtubePlaylistItems = GetPreliminaryYoutubePlaylistItems(playlist);
 
-                string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
-                string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
-                string AISystemPostRequestBody = $"{{" +
-                                                        $"\"model\": \"gpt-3.5-turbo\"," +
-                                                        $"\"temperature\": 0," +
-                                                        $"\"top_p\": 0," +
-                                                        $"\"max_tokens\": 2048," +
-                                                        $"\"frequency_penalty\": 0," +
-                                                        $"\"presence_penalty\": 0," +
-                                                        $"\"messages\": [" +
-                                                                            $"{{ \"role\": \"system\"," +
-                                                                            $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
-                                                                            $"}}" +
-                                                                            "," +
-                                                                            $"{{ \"role\": \"user\"," +
-                                                                            $"   \"content\": \"{OpenAIReadyInputListString}\"" +
-                                                                            $"}}" +
-                                                                      $"]" +
-                                                 $"}}";
-
-                string AIPlaylistGenerationResponse = string.Empty;
-                HttpWebResponse systemSetupResponse = HttpHelpers.MakePostRequest("https://api.openai.com/v1/chat/completions", AISystemPostRequestBody, openAIAccessToken);
-                if (systemSetupResponse.StatusCode == HttpStatusCode.OK)
+                if (youtubePlaylistItems.Count > 12)
                 {
-                    using (Stream stream = systemSetupResponse.GetResponseStream())
-                    using (StreamReader reader = new StreamReader(stream))
-                    {
-                        AIPlaylistGenerationResponse = reader.ReadToEnd();
-                        OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
-                        string rawResult = openAIResult.choices[0].message.content;
-                        rawResult = $"{{ youtubePlaylistItems:[{rawResult}]}}";
-                        JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
-                        youtubePlaylistItems = jsonAIResult.youtubePlaylistItems;
-                    }
+                    //this would take too long for AI to handle, use traditional method
+                    youtubePlaylistItems = YoutubePlaylistItemFactory.CleanUpYoutubePlaylistItems(youtubePlaylistItems);
                 }
+                else
+                {
+                    //goes through the playlist song by song and ask ai to scrub each video title
+                    youtubePlaylistItems = YoutubePlaylistItemFactory.CleanUpYoutubePlaylistItems_PoweredByAI(youtubePlaylistItems, openAISystemSetupString);
+                }
+
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
                 string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
                 await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
                 List<FullTrack> foundTracks = await SearchForSongsOnSpotify(youtubePlaylistItems);
                 bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, foundTracks);
-                if(success)
+                if (success)
                 {
-                    resultModel.SpotifyTrackNames = foundTracks.Select(x =>
+                    resultModel.SpotifyTracks = foundTracks;/*foundTracks.Select(x =>
                     {
                         return ($"{string.Join(",", x.Artists.Select(y => y.Name).ToList())} - {x.Name} - { x.Album.Name}");
-                    }).ToList();
-                    resultModel.YoutubeVideoNames = songNames;
+                    }).ToList();*/
+                    resultModel.YoutubeVideos = youtubePlaylistItems;
                     resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
                     resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
                     return resultModel;
@@ -197,6 +177,8 @@ namespace Youtube2Spotify.Controllers
             }
 
         }
+
+        
 
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(string playlistId)
         {
@@ -237,27 +219,19 @@ namespace Youtube2Spotify.Controllers
             };
         }
 
-        private List<string> GetVideoNameAndArtistName(JArray incomingRawYoutubeMusicPlaylistData)
+        private List<YoutubePlaylistItem> GetPreliminaryYoutubePlaylistItems(JArray incomingRawYoutubeMusicPlaylistData)
         {
-            List<string> OriginalYoutubeData = new List<string>();
+            List<YoutubePlaylistItem> OriginalYoutubeData = new List<YoutubePlaylistItem>();
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
                 string songArtists = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                OriginalYoutubeData.Add($"{songArtists} {songName}");
+                OriginalYoutubeData.Add(new YoutubePlaylistItem() { song = songName, artist = songArtists });
             }
             return OriginalYoutubeData;
         }
 
-        private string FormatYoutubeRawDataForAIConsumption(List<string> incomingYoutubeData)
-        {
-            List<string> OpenAIInput = new List<string>();
-            foreach (string originalYoutubeData in incomingYoutubeData)
-            {
-                OpenAIInput.Add($"## {originalYoutubeData}");
-            }
-            return string.Join("; ", OpenAIInput);
-        }
+
 
         /// <summary>
         /// Creates an Empty Playlist
@@ -317,7 +291,7 @@ namespace Youtube2Spotify.Controllers
                     }
                 }
             }
-            return foundTracks; 
+            return foundTracks;
         }
         public bool AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd)
         {

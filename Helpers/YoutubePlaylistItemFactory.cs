@@ -1,5 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using Youtube2Spotify.Models;
 
 namespace Youtube2Spotify.Helpers
 {
@@ -7,9 +11,7 @@ namespace Youtube2Spotify.Helpers
     {
         public string song;
         public string artist;
-        public string featured_artist;
-        public string producer;
-
+        public string originalYoutubeVideoId;
     }
 
     public static class YoutubePlaylistItemFactory
@@ -20,60 +22,113 @@ namespace Youtube2Spotify.Helpers
         /// <param name="song">original title from youtube video, we will need to massage it a bit</param>
         /// <param name="artist">original channel title, we will need to massage it a bit, might or might not need it during actual search since many music MV include artist name in the title</param>
         /// <returns></returns>
-        public static YoutubePlaylistItem GetYoutubePlaylistItem(string song, string artist)
+        public static List<YoutubePlaylistItem> CleanUpYoutubePlaylistItems(List<YoutubePlaylistItem> rawYoutubePlaylistItems)
         {
-            YoutubePlaylistItem youtubePlaylistItem = new YoutubePlaylistItem();
-            youtubePlaylistItem.artist = string.Empty;
-            bool ignorebrackets = false;
-            song = song.ToLower();
-            song = song.Replace("- video edit", "");
-            song = song.Replace("closed caption", "");
-
-            string cleanedSongName = string.Join(' ', song.Split(' ').Select(x =>
+            foreach(YoutubePlaylistItem rawYoutubePlaylistItem in rawYoutubePlaylistItems)
             {
-                // I suck with regex so this the alternative
-                // the goal is to ignore everything that's between "(official" and "audio)"
-                if (x.Contains("[official") || x.Contains("(official") || x.Contains("(lyric") || x.Contains("[lyric"))
+                bool ignorebrackets = false;
+                rawYoutubePlaylistItem.song = rawYoutubePlaylistItem.song.ToLower();
+                rawYoutubePlaylistItem.song = rawYoutubePlaylistItem.song.Replace("- video edit", "");
+                rawYoutubePlaylistItem.song = rawYoutubePlaylistItem.song.Replace("closed caption", "");
+
+                string cleanedSongName = string.Join(' ', rawYoutubePlaylistItem.song.Split(' ').Select(x =>
                 {
-                    ignorebrackets = true;
-                    return string.Empty;
-                }
+                    // I suck with regex so this the alternative
+                    // the goal is to ignore everything that's between "(official" and "audio)"
+                    if (x.Contains("[official") || x.Contains("(official") || x.Contains("(lyric") || x.Contains("[lyric"))
+                    {
+                        ignorebrackets = true;
+                        return string.Empty;
+                    }
 
-                if(x.Contains("(video)") || x.Contains("(visualizer)"))
-                { 
-                    return string.Empty;
-                }
+                    if (x.Contains("(video)") || x.Contains("(visualizer)"))
+                    {
+                        return string.Empty;
+                    }
 
-                if (x.Contains("audio)") || x.Contains("video)") || x.Contains("audio]") || x.Contains("video]"))
+                    if (x.Contains("audio)") || x.Contains("video)") || x.Contains("audio]") || x.Contains("video]"))
+                    {
+                        ignorebrackets = false;
+                        return string.Empty;
+                    }
+
+                    if (x.Contains("[clean]") || x.Contains("(clean)"))
+                    {
+                        return string.Empty;
+                    }
+
+                    if (ignorebrackets)
+                    {
+                        return string.Empty;
+                    }
+
+                    return x;
+                }).ToArray());
+
+                cleanedSongName = cleanedSongName.Replace("   ", "  ");
+                cleanedSongName = cleanedSongName.Replace("  ", " ");
+                cleanedSongName = cleanedSongName.Replace("\"", "");
+
+                if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
                 {
-                    ignorebrackets = false;
-                    return string.Empty;
+                    rawYoutubePlaylistItem.artist = rawYoutubePlaylistItem.artist.ToLower();
                 }
 
-                if(x.Contains("[clean]") || x.Contains("(clean)"))
-                {
-                    return string.Empty;
-                }
-
-                if (ignorebrackets)
-                {
-                    return string.Empty;
-                }
-
-                return x;
-            }).ToArray());
-
-            cleanedSongName = cleanedSongName.Replace("   ", "  ");
-            cleanedSongName = cleanedSongName.Replace("  ", " ");
-            cleanedSongName = cleanedSongName.Replace("\"", "");
-
-            if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
-            {
-                youtubePlaylistItem.artist = artist.ToLower();
-            }          
+                rawYoutubePlaylistItem.song = cleanedSongName;
+            }
             
-            youtubePlaylistItem.song = cleanedSongName;
-            return youtubePlaylistItem;
+            return rawYoutubePlaylistItems;
+        }
+
+        public static List<YoutubePlaylistItem> CleanUpYoutubePlaylistItems_PoweredByAI(List<YoutubePlaylistItem> rawYoutubePlaylistItems, string AIPromptString, string openAIAccessToken)
+        {            
+            /*string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
+            string OpenAIAssistantSetupString = AIPromptString;
+            string AISystemPostRequestBody = $"{{" +
+                                                    $"\"model\": \"gpt-3.5-turbo\"," +
+                                                    $"\"temperature\": 0," +
+                                                    $"\"top_p\": 0," +
+                                                    $"\"max_tokens\": 2048," +
+                                                    $"\"frequency_penalty\": 0," +
+                                                    $"\"presence_penalty\": 0," +
+                                                    $"\"messages\": [" +
+                                                                        $"{{ \"role\": \"system\"," +
+                                                                        $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
+                                                                        $"}}" +
+                                                                        "," +
+                                                                        $"{{ \"role\": \"user\"," +
+                                                                        $"   \"content\": \"{OpenAIReadyInputListString}\"" +
+                                                                        $"}}" +
+                                                                  $"]" +
+                                             $"}}";
+
+            string AIPlaylistGenerationResponse = string.Empty;
+            HttpWebResponse systemSetupResponse = HttpHelpers.MakePostRequest("https://api.openai.com/v1/chat/completions", AISystemPostRequestBody, openAIAccessToken);
+            if (systemSetupResponse.StatusCode == HttpStatusCode.OK)
+            {
+                using (Stream stream = systemSetupResponse.GetResponseStream())
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    AIPlaylistGenerationResponse = reader.ReadToEnd();
+                    OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
+                    string rawResult = openAIResult.choices[0].message.content;
+                    rawResult = $"{{ youtubePlaylistItems:[{rawResult}]}}";
+                    JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
+                    return jsonAIResult.youtubePlaylistItems;
+                }
+            }
+            return new List<YoutubePlaylistItem>();*/
+
+        }
+
+        private static string FormatYoutubeRawDataForAIConsumption(List<string> incomingYoutubeData)
+        {
+            List<string> OpenAIInput = new List<string>();
+            foreach (string originalYoutubeData in incomingYoutubeData)
+            {
+                OpenAIInput.Add($"## {originalYoutubeData}");
+            }
+            return string.Join("; ", OpenAIInput);
         }
     }
 }

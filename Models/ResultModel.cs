@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using SpotifyAPI.Web;
+using System.Collections.Generic;
+using Youtube2Spotify.Helpers;
 
 namespace Youtube2Spotify.Models
 {
     public class ResultModel
     {
-        public List<string> YoutubeVideoNames;
-        public List<string> SpotifyTrackNames;
+        public List<YoutubePlaylistItem> YoutubeVideos;
+        public List<FullTrack> SpotifyTracks;
         public string SpotifyLink;
         public string YoutubeLink;
 
@@ -13,8 +15,8 @@ namespace Youtube2Spotify.Models
         public faultCode faultCode;
         public ResultModel()
         {
-            YoutubeVideoNames = new List<string>();
-            SpotifyTrackNames = new List<string>();
+            YoutubeVideos = new List<YoutubePlaylistItem>();
+            SpotifyTracks = new List<FullTrack>();
             SpotifyLink = string.Empty;
             YoutubeLink = string.Empty;
             faultTriggered = false;
