@@ -71,22 +71,6 @@ namespace Youtube2Spotify.Controllers
             return PartialView("~/Views/Result/Index.cshtml", result);
         }
 
-        private object MakeYoutubeGetCalls(string url)
-        {
-            string html = string.Empty;
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            request.AutomaticDecompression = DecompressionMethods.GZip;
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                html = reader.ReadToEnd();
-            }
-            // you better know what this is beforehand
-            dynamic json = JsonConvert.DeserializeObject(html);
-            return json;
-        }
 
         private JArray YoutubePlaylistItemsFromHTML(string playlistId)
         {
@@ -214,7 +198,7 @@ namespace Youtube2Spotify.Controllers
             string key = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[0];
 
             string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
-            dynamic json = MakeYoutubeGetCalls(url);
+            dynamic json = HttpHelpers.MakeYoutubeGetCalls(url);
 
             string title = json.items[0].snippet.title;
             string description = json.items[0].snippet.description;
