@@ -133,7 +133,7 @@ namespace Youtube2Spotify.Controllers
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
                 //cutting list down to 25 because of ChatGPT text limit
                 songNames = GetVideoNameAndArtistName(playlist).GetRange(0, 25);
-                resultModel.YoutubeVideoNames = songNames;
+
                 string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
                 string OpenAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
                 string AISystemPostRequestBody = $"{{" +
@@ -174,15 +174,20 @@ namespace Youtube2Spotify.Controllers
                 string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
                 await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
                 List<FullTrack> foundTracks = await SearchForSongsOnSpotify(youtubePlaylistItems);
-
-                resultModel.SpotifyTrackNames = foundTracks.Select(x =>
+                bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, foundTracks);
+                if(success)
                 {
-                    return ($"{string.Join(",", x.Artists.Select(y => y.Name).ToList())} - {x.Name} - { x.Album.Name}");
-                }).ToList();
+                    resultModel.SpotifyTrackNames = foundTracks.Select(x =>
+                    {
+                        return ($"{string.Join(",", x.Artists.Select(y => y.Name).ToList())} - {x.Name} - { x.Album.Name}");
+                    }).ToList();
+                    resultModel.YoutubeVideoNames = songNames;
+                    resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+                    resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
+                    return resultModel;
+                }
+                throw new Exception("Failed to add tracks to spotify");
 
-                resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
-                resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
-                return resultModel;
             }
             catch (Exception exception)
             {
@@ -314,7 +319,7 @@ namespace Youtube2Spotify.Controllers
             }
             return foundTracks; 
         }
-        public async Task<bool> AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd)
+        public bool AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd)
         {
             List<string> trackURI = new List<string>();
 
