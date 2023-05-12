@@ -154,13 +154,9 @@ namespace Youtube2Spotify.Controllers
                 string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
                 await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
                 PlaylistItems = await SearchForSongsOnSpotify(PlaylistItems);
-                bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x=> { return x.foundSpotifyTrack; }).ToList());
+                bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.foundSpotifyTrack; }).ToList());
                 if (success)
                 {
-                    /*foundTracks.Select(x =>
-                    {
-                        return ($"{string.Join(",", x.Artists.Select(y => y.Name).ToList())} - {x.Name} - { x.Album.Name}");
-                    }).ToList();*/
                     resultModel.PlaylistItems = PlaylistItems;
                     resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
                     resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
@@ -177,8 +173,6 @@ namespace Youtube2Spotify.Controllers
             }
 
         }
-
-
 
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(string playlistId)
         {
@@ -231,8 +225,6 @@ namespace Youtube2Spotify.Controllers
             return OriginalYoutubeData;
         }
 
-
-
         /// <summary>
         /// Creates an Empty Playlist
         /// </summary>
@@ -240,7 +232,6 @@ namespace Youtube2Spotify.Controllers
         public async Task<string> CreateEmptyPlayListOnSpotify(YoutubePlaylistMetadata youtubePlaylistMetadata)
         {
             //create a playlist using the currently authenticated profile
-            string newSpotifyPlaylistID = string.Empty;
             string user_Id = HttpContext.Session.GetString("user_Id");
 
             PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistMetadata.title);
@@ -298,7 +289,7 @@ namespace Youtube2Spotify.Controllers
 
             foreach (FullTrack fullTrack in tracksToAdd)
             {
-                if(fullTrack!=null)
+                if (fullTrack != null)
                 {
                     List<SimpleArtist> artists = fullTrack.Artists;
                     List<string> artistNames = artists.Select(x => x.Name).ToList();

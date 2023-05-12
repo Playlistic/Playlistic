@@ -85,7 +85,7 @@ namespace Youtube2Spotify.Helpers
 
         public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string AIPromptString, string openAIAccessToken)
         {
-            /*string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
+            /*
             string OpenAIAssistantSetupString = AIPromptString;
             string AISystemPostRequestBody = $"{{" +
                                                     $"\"model\": \"gpt-3.5-turbo\"," +
@@ -123,16 +123,6 @@ namespace Youtube2Spotify.Helpers
                 
             return new List<PlaylistItem>();
 
-        }
-
-        private static string FormatYoutubeRawDataForAIConsumption(List<string> incomingYoutubeData)
-        {
-            List<string> OpenAIInput = new List<string>();
-            foreach (string originalYoutubeData in incomingYoutubeData)
-            {
-                OpenAIInput.Add($"## {originalYoutubeData}");
-            }
-            return string.Join("; ", OpenAIInput);
         }
     }
 }
