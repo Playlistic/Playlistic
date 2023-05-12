@@ -146,7 +146,7 @@ namespace Youtube2Spotify.Controllers
                 else
                 {
                     //goes through the playlist song by song and ask ai to scrub each video title
-                    youtubePlaylistItems = YoutubePlaylistItemFactory.CleanUpYoutubePlaylistItems_PoweredByAI(youtubePlaylistItems, openAISystemSetupString);
+                    youtubePlaylistItems = YoutubePlaylistItemFactory.CleanUpYoutubePlaylistItems_PoweredByAI(youtubePlaylistItems, openAISystemSetupString, openAIAccessToken);
                 }
 
                 // add total number of song names
