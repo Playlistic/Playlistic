@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using SpotifyAPI.Web;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,14 +8,16 @@ using Youtube2Spotify.Models;
 
 namespace Youtube2Spotify.Helpers
 {
-    public class YoutubePlaylistItem
+    public class PlaylistItem
     {
         public string song;
         public string artist;
         public string originalYoutubeVideoId;
+        public FullTrack? foundSpotifyTrack;
+        public string SpotifyArtists => string.Join(",", foundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
     }
 
-    public static class YoutubePlaylistItemFactory
+    public static class PlaylistItemFactory
     {
         /// <summary>
         /// massages the song title to make it easier to search on spotify
@@ -22,16 +25,16 @@ namespace Youtube2Spotify.Helpers
         /// <param name="song">original title from youtube video, we will need to massage it a bit</param>
         /// <param name="artist">original channel title, we will need to massage it a bit, might or might not need it during actual search since many music MV include artist name in the title</param>
         /// <returns></returns>
-        public static List<YoutubePlaylistItem> CleanUpYoutubePlaylistItems(List<YoutubePlaylistItem> rawYoutubePlaylistItems)
+        public static List<PlaylistItem> CleanUpPlaylistItems(List<PlaylistItem> rawPlaylistItems)
         {
-            foreach(YoutubePlaylistItem rawYoutubePlaylistItem in rawYoutubePlaylistItems)
+            foreach (PlaylistItem rawPlaylistItem in rawPlaylistItems)
             {
                 bool ignorebrackets = false;
-                rawYoutubePlaylistItem.song = rawYoutubePlaylistItem.song.ToLower();
-                rawYoutubePlaylistItem.song = rawYoutubePlaylistItem.song.Replace("- video edit", "");
-                rawYoutubePlaylistItem.song = rawYoutubePlaylistItem.song.Replace("closed caption", "");
+                rawPlaylistItem.song = rawPlaylistItem.song.ToLower();
+                rawPlaylistItem.song = rawPlaylistItem.song.Replace("- video edit", "");
+                rawPlaylistItem.song = rawPlaylistItem.song.Replace("closed caption", "");
 
-                string cleanedSongName = string.Join(' ', rawYoutubePlaylistItem.song.Split(' ').Select(x =>
+                string cleanedSongName = string.Join(' ', rawPlaylistItem.song.Split(' ').Select(x =>
                 {
                     // I suck with regex so this the alternative
                     // the goal is to ignore everything that's between "(official" and "audio)"
@@ -71,17 +74,17 @@ namespace Youtube2Spotify.Helpers
 
                 if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
                 {
-                    rawYoutubePlaylistItem.artist = rawYoutubePlaylistItem.artist.ToLower();
+                    rawPlaylistItem.artist = rawPlaylistItem.artist.ToLower();
                 }
 
-                rawYoutubePlaylistItem.song = cleanedSongName;
+                rawPlaylistItem.song = cleanedSongName;
             }
-            
-            return rawYoutubePlaylistItems;
+
+            return rawPlaylistItems;
         }
 
-        public static List<YoutubePlaylistItem> CleanUpYoutubePlaylistItems_PoweredByAI(List<YoutubePlaylistItem> rawYoutubePlaylistItems, string AIPromptString, string openAIAccessToken)
-        {            
+        public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string AIPromptString, string openAIAccessToken)
+        {
             /*string OpenAIReadyInputListString = FormatYoutubeRawDataForAIConsumption(songNames);
             string OpenAIAssistantSetupString = AIPromptString;
             string AISystemPostRequestBody = $"{{" +
@@ -116,8 +119,9 @@ namespace Youtube2Spotify.Helpers
                     JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
                     return jsonAIResult.youtubePlaylistItems;
                 }
-            }
-            return new List<YoutubePlaylistItem>();*/
+            }*/
+                
+            return new List<PlaylistItem>();
 
         }
 

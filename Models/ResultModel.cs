@@ -1,22 +1,22 @@
 ﻿using SpotifyAPI.Web;
 using System.Collections.Generic;
+using System.Linq;
 using Youtube2Spotify.Helpers;
 
 namespace Youtube2Spotify.Models
 {
     public class ResultModel
     {
-        public List<YoutubePlaylistItem> YoutubeVideos;
-        public List<FullTrack> SpotifyTracks;
+        public List<PlaylistItem> PlaylistItems;
         public string SpotifyLink;
         public string YoutubeLink;
-
+        public int OriginalYoutubeVideoCount => PlaylistItems.Count;
+        public int FoundSpotifyTracks => PlaylistItems.Select(x => x.foundSpotifyTrack != null).Count();
         public bool faultTriggered;
         public faultCode faultCode;
         public ResultModel()
         {
-            YoutubeVideos = new List<YoutubePlaylistItem>();
-            SpotifyTracks = new List<FullTrack>();
+            PlaylistItems = new List<PlaylistItem>();
             SpotifyLink = string.Empty;
             YoutubeLink = string.Empty;
             faultTriggered = false;

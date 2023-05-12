@@ -36,6 +36,6 @@ namespace Youtube2Spotify.Models
     public class JsonAIResult
     {
         [JsonProperty]
-        public List<YoutubePlaylistItem> youtubePlaylistItems;
+        public List<PlaylistItem> youtubePlaylistItems;
     }
 }

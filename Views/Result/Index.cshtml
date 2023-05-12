@@ -45,19 +45,18 @@
         <thead>
             <tr>
                 <th scope="col">#</th>
-                <th scope="col">Youtube Videos Total: (@Model.YoutubeVideos.Count)</th>
-                <th scope="col">Spotify Tracks Total: Found: (@Model.SpotifyTracks.Count());</th>
+                <th scope="col">Youtube Videos Total: (@Model.OriginalYoutubeVideoCount)</th>
+                <th scope="col">Spotify Tracks Total: Found: (@Model.FoundSpotifyTracks);</th>
             </tr>
         </thead>
         <tbody>
-            @for (int i = 0; i < Model.YoutubeVideoNames.Count; i++)
+            @for (int i = 0; i < Model.OriginalYoutubeVideoCount; i++)
             {
                 int j = i + 1;
                 <tr>
                     <th scope="row">@j</th>
-                    <td>@Model.YoutubeVideoNames[i]</td>
-                    <td>@Model.SpotifyTrackNames[i]</td>
-
+                    <td>@Model.PlaylistItems[i].artist - @Model.PlaylistItems[i].song</td>
+                    <td>@Model.PlaylistItems[i].SpotifyArtists - @Model.PlaylistItems[i].foundSpotifyTrack?.Album.Name - @Model.PlaylistItems[i].foundSpotifyTrack?.Name</td>
                 </tr>
             }
         </tbody>
