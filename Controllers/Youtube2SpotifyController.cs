@@ -307,7 +307,7 @@ namespace Youtube2Spotify.Controllers
             }
 
             HttpWebResponse httpWebResponse = AddTracksToPlaylist(spotifyPlaylistId, string.Join(",", trackURI));
-            if (httpWebResponse.StatusCode == HttpStatusCode.OK)
+            if (httpWebResponse.StatusCode == HttpStatusCode.Created)
             {
                 return true;
             }
