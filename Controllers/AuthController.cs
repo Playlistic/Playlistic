@@ -53,7 +53,7 @@ namespace Youtube2Spotify.Controllers
 
             spotifyAppId = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[1];
 
-            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20playlist-modify-private%20playlist-read-private%20playlist-read-collaborative%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
+            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
         }
 
         public IActionResult AuthReturnCode(string code)
