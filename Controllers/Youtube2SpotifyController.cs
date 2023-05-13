@@ -137,7 +137,9 @@ namespace Youtube2Spotify.Controllers
                 //cutting list down to 25 because of ChatGPT text limit
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
-                if (PlaylistItems.Count > 25)
+                PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
+
+                /*if (PlaylistItems.Count > 25)
                 {
                     //this would take too long for AI to handle, use traditional method
                     PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
@@ -146,7 +148,7 @@ namespace Youtube2Spotify.Controllers
                 {
                     //goes through the playlist song by song and ask ai to scrub each video title and find 
                     PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAIAssistantSetupString, openAIAccessToken);
-                }
+                }*/
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
