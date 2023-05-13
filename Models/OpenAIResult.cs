@@ -36,7 +36,7 @@ namespace Youtube2Spotify.Models
     public class JsonAIResult
     {
         [JsonProperty]
-        public List<PlaylistItem> youtubePlaylistItems;
+        public List<SpotifySearchObject> spotifySearchObjects;
         [JsonProperty]
         public object Comments;
         [JsonProperty]

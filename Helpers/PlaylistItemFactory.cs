@@ -52,14 +52,14 @@ namespace Youtube2Spotify.Helpers
         public string Song { get; set; }
         public List<string> Artists { get; set; }
         public List<string> Producers { get; set; }
-        public List<string> Featured_Artist { get; set; }
+        public List<string> Featured_Artists { get; set; }
 
         public SpotifySearchObject()
         {
             Song = string.Empty;
             Artists = new List<string>();
             Producers = new List<string>();
-            Featured_Artist = new List<string>();
+            Featured_Artists = new List<string>();
 
         }
     }
@@ -133,14 +133,24 @@ namespace Youtube2Spotify.Helpers
         public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string OpenAIAssistantSetupString, string openAIAccessToken)
         {
 
-            string OpenAIReadyInputListString = string.Join("", rawPlaylistItems.Select(x => 
+            string OpenAIReadyInputListString = "[" + string.Join(",", rawPlaylistItems.Select(x =>
+              {
+                  return $"{{" +
+                  $"\\\"ArtistOriginal\\\":\\\"{x.OriginalYoutubeObject.VideoChannelTitle}\\\"," +
+                  $"\\\"Input\\\":\\\"{x.OriginalYoutubeObject.VideoTitle}\\\""+
+                  $"}}";
+
+              })) + "]";
+
+            List<SpotifySearchObject> spotifySearchObjects = HttpHelpers.MakeOpenAIRequest(OpenAIAssistantSetupString, OpenAIReadyInputListString, openAIAccessToken);
+
+            for (int i = 0; i < rawPlaylistItems.Count; i++)
             {
-                return x.SpotifySearchObject.Artists.Count > 0 ? $"## {string.Join(" ", x.SpotifySearchObject.Artists)} {x.SpotifySearchObject.Song};" : $"{x.SpotifySearchObject.Song};";
-
-            }));
-            //rawPlayListItem.SpotifySearchObject.SearchSongName = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
+                rawPlaylistItems[i].SpotifySearchObject = spotifySearchObjects[i];
+            }
 
 
+            //
             /*string OpenAIReadyInputListString = openAISongString + rawPlayListItem.SpotifySearchObject.SearchSongName;
 
             OpenAIReadyInputListString = openAIArtistString + rawPlayListItem.SpotifySearchObject.SearchSongName;

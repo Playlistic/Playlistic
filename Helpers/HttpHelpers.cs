@@ -21,6 +21,7 @@ namespace Youtube2Spotify.Helpers
             request.ContentType = "application/json;charset=utf-8";
             request.Accept = "application/json";
             request.Headers.Add("Authorization", "Bearer " + token);
+            request.Timeout = 300000;
 
             using (var stream = request.GetRequestStream())
             {
@@ -47,10 +48,10 @@ namespace Youtube2Spotify.Helpers
             return json;
         }
 
-        public static string MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
+        public static List<SpotifySearchObject> MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
         {
+            List<SpotifySearchObject> spotifySearchObjects = new List<SpotifySearchObject>();
 
-            string AIPlaylistGenerationResponse = string.Empty;
             string AISystemPostRequestBody = $"{{" +
                                                     $"\"model\": \"gpt-3.5-turbo\"," +
                                                     $"\"temperature\": 0," +
@@ -75,14 +76,15 @@ namespace Youtube2Spotify.Helpers
                 using (Stream stream = systemSetupResponse.GetResponseStream())
                 using (StreamReader reader = new StreamReader(stream))
                 {
-                    AIPlaylistGenerationResponse = reader.ReadToEnd();
+                    string AIPlaylistGenerationResponse = reader.ReadToEnd();
 
                     OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
                     string rawResult = openAIResult.choices[0].message.content;
                     JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
+                    spotifySearchObjects = jsonAIResult.spotifySearchObjects;
                 }
             }
-            return AIPlaylistGenerationResponse;
+            return spotifySearchObjects;
         }
     }
 }
