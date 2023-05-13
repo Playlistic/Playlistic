@@ -35,14 +35,16 @@ namespace Youtube2Spotify.Controllers
         {
             Environment = _environment;
             openAIAccessToken = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAISecret.txt")[0];
-            openAISystemSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
+            openAISongString = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAIPrompt.txt")[0];
+            openAIArtistString = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAIPrompt.txt")[1];
         }
 
         private string YoutubePlaylistID { get; set; }
         private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
         private string openAIAccessToken;
-        private string openAISystemSetupString;
+        private string openAISongString;
+        private string openAIArtistString;
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
@@ -105,7 +107,6 @@ namespace Youtube2Spotify.Controllers
             rawPlaylistData = rawPlaylistData.Replace("'});ytcfg.set({'YTMUSIC_INITIAL_DATA': initialData});} catch (e) {}", "");
             dynamic initialData = JsonConvert.DeserializeObject(rawPlaylistData);
             JArray playlist = initialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents;
-
             return playlist;
         }
 
@@ -145,8 +146,8 @@ namespace Youtube2Spotify.Controllers
                 }
                 else
                 {
-                    //goes through the playlist song by song and ask ai to scrub each video title
-                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAISystemSetupString, openAIAccessToken);
+                    //goes through the playlist song by song and ask ai to scrub each video title and find 
+                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAISongString, openAIArtistString, openAIAccessToken);
                 }
 
                 // add total number of song names
@@ -220,7 +221,13 @@ namespace Youtube2Spotify.Controllers
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
                 string songArtists = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                OriginalYoutubeData.Add(new PlaylistItem() { song = songName, artist = songArtists });
+                string originalYoutubeVideoId = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.playlistItemData.videoId.Value;
+
+                string originalYoutubeThumbnailSmall = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url.Value;  
+
+                PlaylistItem playlistItem = new PlaylistItem() { searchSongName = songName, originalYoutubeVideoId = originalYoutubeVideoId, originalYoutubeThumbnailURL = originalYoutubeThumbnailSmall };
+                playlistItem.searchArtistName.Add(songArtists.ToLower());
+                OriginalYoutubeData.Add(playlistItem);
             }
             return OriginalYoutubeData;
         }
@@ -321,12 +328,12 @@ namespace Youtube2Spotify.Controllers
             return $"{string.Join(", ", artists)} - {song}";
         }
 
-        private string FormatSpotifySearchString(PlaylistItem youtubePlaylistItem)
+        private string FormatSpotifySearchString(PlaylistItem playlistItem)
         {
             StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.Append(string.Join(" ", youtubePlaylistItem.artist));
-            queryBuilder.Append($" {youtubePlaylistItem.song}");
+            queryBuilder.Append(string.Join(" ", playlistItem.searchArtistName));
+            queryBuilder.Append($" {playlistItem.searchSongName}");
 
             return queryBuilder.ToString();
         }

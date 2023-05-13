@@ -55,7 +55,7 @@
                 int j = i + 1;
                 <tr>
                     <th scope="row">@j</th>
-                    <td>@Model.PlaylistItems[i].artist - @Model.PlaylistItems[i].song</td>
+                    <td>@Model.PlaylistItems[i].searchArtistName - @Model.PlaylistItems[i].searchSongName</td>
                     <td>@Model.PlaylistItems[i].SpotifyArtists - @Model.PlaylistItems[i].foundSpotifyTrack?.Album.Name - @Model.PlaylistItems[i].foundSpotifyTrack?.Name</td>
                 </tr>
             }

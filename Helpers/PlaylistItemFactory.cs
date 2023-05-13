@@ -10,11 +10,18 @@ namespace Youtube2Spotify.Helpers
 {
     public class PlaylistItem
     {
-        public string song;
-        public string artist;
+        public string searchSongName;
+        public List<string> searchArtistName;
+        public string originalYoutubeVideoTitle;
+        public string originalYoutubeVideoChannelTitle;
         public string originalYoutubeVideoId;
+        public string originalYoutubeThumbnailURL;
         public FullTrack? foundSpotifyTrack;
         public string SpotifyArtists => string.Join(",", foundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
+        public PlaylistItem()
+        {
+            searchArtistName = new List<string>();
+        }
     }
 
     public static class PlaylistItemFactory
@@ -30,11 +37,11 @@ namespace Youtube2Spotify.Helpers
             foreach (PlaylistItem rawPlaylistItem in rawPlaylistItems)
             {
                 bool ignorebrackets = false;
-                rawPlaylistItem.song = rawPlaylistItem.song.ToLower();
-                rawPlaylistItem.song = rawPlaylistItem.song.Replace("- video edit", "");
-                rawPlaylistItem.song = rawPlaylistItem.song.Replace("closed caption", "");
+                rawPlaylistItem.searchSongName = rawPlaylistItem.searchSongName.ToLower();
+                rawPlaylistItem.searchSongName = rawPlaylistItem.searchSongName.Replace("- video edit", "");
+                rawPlaylistItem.searchSongName = rawPlaylistItem.searchSongName.Replace("closed caption", "");
 
-                string cleanedSongName = string.Join(' ', rawPlaylistItem.song.Split(' ').Select(x =>
+                string cleanedSongName = string.Join(' ', rawPlaylistItem.searchSongName.Split(' ').Select(x =>
                 {
                     // I suck with regex so this the alternative
                     // the goal is to ignore everything that's between "(official" and "audio)"
@@ -74,55 +81,32 @@ namespace Youtube2Spotify.Helpers
 
                 if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
                 {
-                    rawPlaylistItem.artist = rawPlaylistItem.artist.ToLower();
+                    rawPlaylistItem.searchArtistName = rawPlaylistItem.searchArtistName.Select(x => x.ToLower()).ToList();
                 }
 
-                rawPlaylistItem.song = cleanedSongName;
+                rawPlaylistItem.searchSongName = cleanedSongName;
             }
 
             return rawPlaylistItems;
         }
 
-        public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string AIPromptString, string openAIAccessToken)
+        public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string openAISongString, string openAIArtistString, string openAIAccessToken)
         {
-            /*
-            string OpenAIAssistantSetupString = AIPromptString;
-            string AISystemPostRequestBody = $"{{" +
-                                                    $"\"model\": \"gpt-3.5-turbo\"," +
-                                                    $"\"temperature\": 0," +
-                                                    $"\"top_p\": 0," +
-                                                    $"\"max_tokens\": 2048," +
-                                                    $"\"frequency_penalty\": 0," +
-                                                    $"\"presence_penalty\": 0," +
-                                                    $"\"messages\": [" +
-                                                                        $"{{ \"role\": \"system\"," +
-                                                                        $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
-                                                                        $"}}" +
-                                                                        "," +
-                                                                        $"{{ \"role\": \"user\"," +
-                                                                        $"   \"content\": \"{OpenAIReadyInputListString}\"" +
-                                                                        $"}}" +
-                                                                  $"]" +
-                                             $"}}";
-
-            string AIPlaylistGenerationResponse = string.Empty;
-            HttpWebResponse systemSetupResponse = HttpHelpers.MakePostRequest("https://api.openai.com/v1/chat/completions", AISystemPostRequestBody, openAIAccessToken);
-            if (systemSetupResponse.StatusCode == HttpStatusCode.OK)
+            foreach (PlaylistItem rawPlayListItem in rawPlaylistItems)
             {
-                using (Stream stream = systemSetupResponse.GetResponseStream())
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    AIPlaylistGenerationResponse = reader.ReadToEnd();
-                    OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
-                    string rawResult = openAIResult.choices[0].message.content;
-                    rawResult = $"{{ youtubePlaylistItems:[{rawResult}]}}";
-                    JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
-                    return jsonAIResult.youtubePlaylistItems;
-                }
-            }*/
-                
-            return new List<PlaylistItem>();
+                string OpenAIReadyInputListString = openAISongString + rawPlayListItem.searchSongName;
+                rawPlayListItem.searchSongName = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
+                OpenAIReadyInputListString = openAIArtistString + rawPlayListItem.searchSongName;
+                string foundArtist = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
+                foundArtist = foundArtist.ToLower();
 
+                if (!rawPlayListItem.searchArtistName.Contains(foundArtist))
+                {
+                    rawPlayListItem.searchArtistName.Add(foundArtist);
+                }
+            }
+
+            return rawPlaylistItems;
         }
     }
 }
