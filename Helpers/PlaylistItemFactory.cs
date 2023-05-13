@@ -149,19 +149,6 @@ namespace Youtube2Spotify.Helpers
                 rawPlaylistItems[i].SpotifySearchObject = spotifySearchObjects[i];
             }
 
-
-            //
-            /*string OpenAIReadyInputListString = openAISongString + rawPlayListItem.SpotifySearchObject.SearchSongName;
-
-            OpenAIReadyInputListString = openAIArtistString + rawPlayListItem.SpotifySearchObject.SearchSongName;
-            string foundArtist = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
-            foundArtist = foundArtist.ToLower();
-
-            if (!rawPlayListItem.SpotifySearchObject.SearchArtistName.Contains(foundArtist))
-            {
-                rawPlayListItem.SpotifySearchObject.SearchArtistName.Add(foundArtist);
-            }*/
-
             return rawPlaylistItems;
         }
     }

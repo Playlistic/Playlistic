@@ -138,14 +138,14 @@ namespace Youtube2Spotify.Controllers
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
 
-                if (PlaylistItems.Count > 25)
+                if (PlaylistItems.Count > 12)
                 {
                     //this would take too long for AI to handle, use traditional method
                     PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
                 }
                 else
                 {
-                    //goes through the playlist song by song and ask ai to scrub each video title and find 
+                    //throws the entire playlist at AI to go through and return a cleaned up search list
                     PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAIAssistantSetupString, openAIAccessToken);
                 }
 
