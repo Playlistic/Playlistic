@@ -10,17 +10,56 @@ namespace Youtube2Spotify.Helpers
 {
     public class PlaylistItem
     {
-        public string searchSongName;
-        public List<string> searchArtistName;
-        public string originalYoutubeVideoTitle;
-        public string originalYoutubeVideoChannelTitle;
-        public string originalYoutubeVideoId;
-        public string originalYoutubeThumbnailURL;
-        public FullTrack? foundSpotifyTrack;
-        public string SpotifyArtists => string.Join(",", foundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
+        public SpotifySearchObject SpotifySearchObject { get; set; }
+        public OriginalYoutubeObject OriginalYoutubeObject { get; set; }
+        public FullTrack? FoundSpotifyTrack { get; set; }
+        public string SpotifyArtists => string.Join(",", FoundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
         public PlaylistItem()
         {
-            searchArtistName = new List<string>();
+            OriginalYoutubeObject = new OriginalYoutubeObject();
+            SpotifySearchObject = new SpotifySearchObject();
+        }
+    }
+    public class OriginalYoutubeObject
+    {
+        public string VideoTitle
+        {
+            get; set;
+        }
+        public string VideoChannelTitle
+        {
+            get; set;
+        }
+        public string VideoId
+        {
+            get; set;
+        }
+        public string ThumbnailURL
+        {
+            get; set;
+        }
+        public OriginalYoutubeObject()
+        {
+            VideoTitle = string.Empty;
+            VideoChannelTitle = string.Empty;
+            VideoId = string.Empty;
+            ThumbnailURL = string.Empty;
+        }
+    }
+    public class SpotifySearchObject
+    {
+        public string Song { get; set; }
+        public List<string> Artists { get; set; }
+        public List<string> Producers { get; set; }
+        public List<string> Featured_Artist { get; set; }
+
+        public SpotifySearchObject()
+        {
+            Song = string.Empty;
+            Artists = new List<string>();
+            Producers = new List<string>();
+            Featured_Artist = new List<string>();
+
         }
     }
 
@@ -37,11 +76,11 @@ namespace Youtube2Spotify.Helpers
             foreach (PlaylistItem rawPlaylistItem in rawPlaylistItems)
             {
                 bool ignorebrackets = false;
-                rawPlaylistItem.searchSongName = rawPlaylistItem.searchSongName.ToLower();
-                rawPlaylistItem.searchSongName = rawPlaylistItem.searchSongName.Replace("- video edit", "");
-                rawPlaylistItem.searchSongName = rawPlaylistItem.searchSongName.Replace("closed caption", "");
+                rawPlaylistItem.SpotifySearchObject.Song = rawPlaylistItem.SpotifySearchObject.Song.ToLower();
+                rawPlaylistItem.SpotifySearchObject.Song = rawPlaylistItem.SpotifySearchObject.Song.Replace("- video edit", "");
+                rawPlaylistItem.SpotifySearchObject.Song = rawPlaylistItem.SpotifySearchObject.Song.Replace("closed caption", "");
 
-                string cleanedSongName = string.Join(' ', rawPlaylistItem.searchSongName.Split(' ').Select(x =>
+                string cleanedSongName = string.Join(' ', rawPlaylistItem.SpotifySearchObject.Song.Split(' ').Select(x =>
                 {
                     // I suck with regex so this the alternative
                     // the goal is to ignore everything that's between "(official" and "audio)"
@@ -81,30 +120,36 @@ namespace Youtube2Spotify.Helpers
 
                 if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
                 {
-                    rawPlaylistItem.searchArtistName = rawPlaylistItem.searchArtistName.Select(x => x.ToLower()).ToList();
+                    rawPlaylistItem.SpotifySearchObject.Artists = rawPlaylistItem.SpotifySearchObject.Artists.Select(x => x.ToLower()).ToList();
                 }
 
-                rawPlaylistItem.searchSongName = cleanedSongName;
+                rawPlaylistItem.SpotifySearchObject.Song = cleanedSongName;
             }
 
             return rawPlaylistItems;
         }
 
-        public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string openAISongString, string openAIArtistString, string openAIAccessToken)
+        public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string OpenAIAssistantSetupString, string openAIAccessToken)
         {
-            foreach (PlaylistItem rawPlayListItem in rawPlaylistItems)
-            {
-                string OpenAIReadyInputListString = openAISongString + rawPlayListItem.searchSongName;
-                rawPlayListItem.searchSongName = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
-                OpenAIReadyInputListString = openAIArtistString + rawPlayListItem.searchSongName;
-                string foundArtist = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
-                foundArtist = foundArtist.ToLower();
 
-                if (!rawPlayListItem.searchArtistName.Contains(foundArtist))
-                {
-                    rawPlayListItem.searchArtistName.Add(foundArtist);
-                }
-            }
+            string OpenAIReadyInputListString = string.Join("", rawPlaylistItems.Select(x => 
+            {
+                return x.SpotifySearchObject.Artists.Count > 0 ? $"## {string.Join(" ", x.SpotifySearchObject.Artists)} {x.SpotifySearchObject.Song};" : $"{x.SpotifySearchObject.Song};";
+
+            }));
+            //rawPlayListItem.SpotifySearchObject.SearchSongName = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
+
+
+            /*string OpenAIReadyInputListString = openAISongString + rawPlayListItem.SpotifySearchObject.SearchSongName;
+
+            OpenAIReadyInputListString = openAIArtistString + rawPlayListItem.SpotifySearchObject.SearchSongName;
+            string foundArtist = HttpHelpers.MakeOpenAIRequest(OpenAIReadyInputListString, openAIAccessToken);
+            foundArtist = foundArtist.ToLower();
+
+            if (!rawPlayListItem.SpotifySearchObject.SearchArtistName.Contains(foundArtist))
+            {
+                rawPlayListItem.SpotifySearchObject.SearchArtistName.Add(foundArtist);
+            }*/
 
             return rawPlaylistItems;
         }

@@ -35,16 +35,14 @@ namespace Youtube2Spotify.Controllers
         {
             Environment = _environment;
             openAIAccessToken = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAISecret.txt")[0];
-            openAISongString = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAIPrompt.txt")[0];
-            openAIArtistString = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAIPrompt.txt")[1];
+            openAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
         }
 
         private string YoutubePlaylistID { get; set; }
         private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
         private string openAIAccessToken;
-        private string openAISongString;
-        private string openAIArtistString;
+        private string openAIAssistantSetupString;
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
@@ -136,10 +134,10 @@ namespace Youtube2Spotify.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-                //cutting list down to 12 because of ChatGPT text limit
+                //cutting list down to 25 because of ChatGPT text limit
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
-                if (PlaylistItems.Count > 12)
+                if (PlaylistItems.Count > 25)
                 {
                     //this would take too long for AI to handle, use traditional method
                     PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
@@ -147,7 +145,7 @@ namespace Youtube2Spotify.Controllers
                 else
                 {
                     //goes through the playlist song by song and ask ai to scrub each video title and find 
-                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAISongString, openAIArtistString, openAIAccessToken);
+                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAIAssistantSetupString, openAIAccessToken);
                 }
 
                 // add total number of song names
@@ -155,7 +153,7 @@ namespace Youtube2Spotify.Controllers
                 string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
                 await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
                 PlaylistItems = await SearchForSongsOnSpotify(PlaylistItems);
-                bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.foundSpotifyTrack; }).ToList());
+                bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
                 if (success)
                 {
                     resultModel.PlaylistItems = PlaylistItems;
@@ -223,10 +221,13 @@ namespace Youtube2Spotify.Controllers
                 string songArtists = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
                 string originalYoutubeVideoId = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.playlistItemData.videoId.Value;
 
-                string originalYoutubeThumbnailSmall = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url.Value;  
+                string originalYoutubeThumbnailSmall = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url.Value;
 
-                PlaylistItem playlistItem = new PlaylistItem() { searchSongName = songName, originalYoutubeVideoId = originalYoutubeVideoId, originalYoutubeThumbnailURL = originalYoutubeThumbnailSmall };
-                playlistItem.searchArtistName.Add(songArtists.ToLower());
+                PlaylistItem playlistItem = new PlaylistItem();
+                playlistItem.SpotifySearchObject.Song = songName;
+                playlistItem.OriginalYoutubeObject.VideoId = originalYoutubeVideoId;
+                playlistItem.OriginalYoutubeObject.ThumbnailURL = originalYoutubeThumbnailSmall;
+                playlistItem.SpotifySearchObject.Artists.Add(songArtists.ToLower());
                 OriginalYoutubeData.Add(playlistItem);
             }
             return OriginalYoutubeData;
@@ -276,7 +277,7 @@ namespace Youtube2Spotify.Controllers
                 if (!searchResponse.Tracks.Total.HasValue || !(searchResponse.Tracks.Total > 0))
                 {
                     //still add blank entry to make the list look nice
-                    playlistItem.foundSpotifyTrack = null;
+                    playlistItem.FoundSpotifyTrack = null;
                     continue;
                 }
                 if (searchResponse.Tracks.Items != null)
@@ -284,7 +285,7 @@ namespace Youtube2Spotify.Controllers
                     if (searchResponse.Tracks.Items.Count > 0)
                     {
                         FullTrack fullTrack = searchResponse.Tracks.Items[0];
-                        playlistItem.foundSpotifyTrack = fullTrack;
+                        playlistItem.FoundSpotifyTrack = fullTrack;
                     }
                 }
             }
@@ -332,8 +333,8 @@ namespace Youtube2Spotify.Controllers
         {
             StringBuilder queryBuilder = new StringBuilder();
 
-            queryBuilder.Append(string.Join(" ", playlistItem.searchArtistName));
-            queryBuilder.Append($" {playlistItem.searchSongName}");
+            queryBuilder.Append(string.Join(" ", playlistItem.SpotifySearchObject.Artists));
+            queryBuilder.Append($" {playlistItem.SpotifySearchObject.Song}");
 
             return queryBuilder.ToString();
         }

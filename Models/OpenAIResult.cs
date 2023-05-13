@@ -37,5 +37,9 @@ namespace Youtube2Spotify.Models
     {
         [JsonProperty]
         public List<PlaylistItem> youtubePlaylistItems;
+        [JsonProperty]
+        public object Comments;
+        [JsonProperty]
+        public object Messages;
     }
 }

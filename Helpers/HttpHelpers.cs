@@ -47,7 +47,7 @@ namespace Youtube2Spotify.Helpers
             return json;
         }
 
-        public static string MakeOpenAIRequest(string OpenAIReadyInputListString, string OpenAIAccessToken)
+        public static string MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
         {
 
             string AIPlaylistGenerationResponse = string.Empty;
@@ -55,10 +55,14 @@ namespace Youtube2Spotify.Helpers
                                                     $"\"model\": \"gpt-3.5-turbo\"," +
                                                     $"\"temperature\": 0," +
                                                     $"\"top_p\": 0," +
-                                                    $"\"max_tokens\": 256," +
+                                                    $"\"max_tokens\": 2048," +
                                                     $"\"frequency_penalty\": 0," +
                                                     $"\"presence_penalty\": 0," +
                                                     $"\"messages\": [" +
+                                                                        $"{{ \"role\": \"system\"," +
+                                                                        $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
+                                                                        $"}}" +
+                                                                        "," +
                                                                         $"{{ \"role\": \"user\"," +
                                                                         $"   \"content\": \"{OpenAIReadyInputListString}\"" +
                                                                         $"}}" +
@@ -75,6 +79,7 @@ namespace Youtube2Spotify.Helpers
 
                     OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
                     string rawResult = openAIResult.choices[0].message.content;
+                    JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
                 }
             }
             return AIPlaylistGenerationResponse;

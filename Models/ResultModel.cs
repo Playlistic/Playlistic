@@ -11,7 +11,7 @@ namespace Youtube2Spotify.Models
         public string SpotifyLink;
         public string YoutubeLink;
         public int OriginalYoutubeVideoCount => PlaylistItems.Count;
-        public int FoundSpotifyTracks => PlaylistItems.Select(x => x.foundSpotifyTrack != null).Count();
+        public int FoundSpotifyTracks => PlaylistItems.Select(x => x.FoundSpotifyTrack != null).Count();
         public bool faultTriggered;
         public faultCode faultCode;
         public ResultModel()
