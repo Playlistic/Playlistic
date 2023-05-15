@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using Youtube2Spotify.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace Youtube2Spotify.Controllers
 {
@@ -18,11 +19,12 @@ namespace Youtube2Spotify.Controllers
         string code_challenge;
         string code_verifier;
         private string spotifyAppId;
-        private IWebHostEnvironment Environment;
+        private IConfiguration _configuration;
 
-        public AuthController(IWebHostEnvironment _environment)
+        public AuthController(IConfiguration configuration)
         {
-            Environment = _environment;
+            _configuration = configuration;
+            spotifyAppId = _configuration["SpotifyId"];
         }
 
         [HttpPost]
@@ -51,7 +53,7 @@ namespace Youtube2Spotify.Controllers
             }
             HttpContext.Session.SetString("code_verifier", code_verifier);
 
-            spotifyAppId = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[1];
+
 
             return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
         }
@@ -63,7 +65,6 @@ namespace Youtube2Spotify.Controllers
                 string url = "https://accounts.spotify.com/api/token";
                 string html = string.Empty;
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                spotifyAppId = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[1];
                 string postData = "client_id=" + spotifyAppId;
                 postData += "&grant_type=" + "authorization_code";
                 postData += "&code=" + code;

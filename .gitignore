@@ -5,3 +5,4 @@ bin/
 obj/
 wwwroot/OpenAIPrompt.txt
 wwwroot/OpenAIPrompt.txt.bak
+azureclientsecretvalue.txt

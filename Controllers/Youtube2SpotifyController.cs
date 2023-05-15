@@ -4,6 +4,7 @@ using AngleSharp.Html.Parser;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SpotifyAPI.Web;
@@ -30,19 +31,21 @@ namespace Youtube2Spotify.Controllers
 
     public class Youtube2SpotifyController : Controller
     {
-        private IWebHostEnvironment Environment;
-        public Youtube2SpotifyController(IWebHostEnvironment _environment)
+        private readonly IConfiguration _configuration;
+        public Youtube2SpotifyController(IConfiguration configuration)
         {
-            Environment = _environment;
-            openAIAccessToken = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\OpenAISecret.txt")[0];
-            openAIAssistantSetupString = System.IO.File.ReadAllText($"{Environment.WebRootPath}\\OpenAIPrompt.txt");
+            _configuration = configuration;
+            openAIAccessToken = configuration["OpenAIAPIKey"];
+            openAIAssistantSetupString = configuration["OpenAIPrompt"];
+            googleAPIAccessToken = configuration["YoutubeAPIKey"];
         }
 
         private string YoutubePlaylistID { get; set; }
         private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
-        private string openAIAccessToken;
-        private string openAIAssistantSetupString;
+        private readonly string openAIAccessToken;
+        private readonly string openAIAssistantSetupString;
+        private readonly string googleAPIAccessToken;
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
@@ -176,9 +179,7 @@ namespace Youtube2Spotify.Controllers
 
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(string playlistId)
         {
-            string key = System.IO.File.ReadAllLines($"{Environment.WebRootPath}\\Secret.txt")[0];
-
-            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={key}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
+            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={googleAPIAccessToken}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
             dynamic json = HttpHelpers.MakeYoutubeGetCalls(url);
 
             string title = json.items[0].snippet.title;
