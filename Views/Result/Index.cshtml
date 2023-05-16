@@ -41,8 +41,8 @@
     <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
     <h2>New Spotify Playlist: </h2>
     <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
-    <table class="table" style="width:80%">
-        <thead>
+    <table class="table table-striped table-responsive">
+        <thead class="thead-light">
             <tr>
                 <th scope="col">#</th>
                 <th scope="col">Youtube Thumbnail</th>
@@ -57,10 +57,10 @@
                 int j = i + 1;
                 <tr>
                     <th scope="row">@j</th>
-                    <td scope="row"><img class="img-fluid img-thumbnail" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" /></td>
+                    <td scope="row"><img class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" /></td>
                     <td scope="row">@Model.PlaylistItems[i].YoutubeArtists - @Model.PlaylistItems[i].SpotifySearchObject.Song</td>
                     <td scope="row">@Model.PlaylistItems[i].SpotifyArtists - @Model.PlaylistItems[i].FoundSpotifyTrack?.Name</td>
-                    <td scope="row"><img class="img-fluid img-thumbnail" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" /></td>
+                    <td scope="row"><img class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" /></td>
                 </tr>
             }
         </tbody>
