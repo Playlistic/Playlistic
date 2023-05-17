@@ -13,8 +13,8 @@ namespace Youtube2Spotify.Helpers
         public SpotifySearchObject SpotifySearchObject { get; set; }
         public OriginalYoutubeObject OriginalYoutubeObject { get; set; }
         public FullTrack? FoundSpotifyTrack { get; set; }
-        public string SpotifyArtists => string.Join(",", FoundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
-        public string YoutubeArtists => string.Join(",", SpotifySearchObject.Artists);
+        public string SpotifyArtists => string.Join(", ", FoundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
+        public string YoutubeArtists => string.Join(", ", SpotifySearchObject.Artists);
         public PlaylistItem()
         {
             OriginalYoutubeObject = new OriginalYoutubeObject();
