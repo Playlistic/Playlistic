@@ -51,13 +51,24 @@ namespace Youtube2Spotify.Controllers
         {
             ResultModel resultModel = new ResultModel();
             string access_Token = HttpContext.Session.GetString("access_token");
-            DateTime expire_Time = DateTime.Parse(HttpContext.Session.GetString("expire_time"));
-            if (DateTime.Now > expire_Time)
+            try
+            {
+                string expire_time_raw = HttpContext.Session.GetString("expire_time");
+                DateTime expire_Time = DateTime.Parse(expire_time_raw);
+                if (DateTime.Now > expire_Time)
+                {
+                    resultModel.faultTriggered = true;
+                    resultModel.faultCode = faultCode.AuthExpired;
+                    return Result(resultModel);
+                }
+            }
+            catch
             {
                 resultModel.faultTriggered = true;
                 resultModel.faultCode = faultCode.AuthExpired;
                 return Result(resultModel);
             }
+
 
             spotify = new SpotifyClient(access_Token);
             HttpContext.Session.SetString("user_Id", await GetUserId());
@@ -187,10 +198,12 @@ namespace Youtube2Spotify.Controllers
             string coverArt = json.items[0].snippet.thumbnails.medium.url;
 
             string base64ImageString = string.Empty;
+
             if (title.Length > 200)
             {
                 title = title.Substring(0, 200);
             }
+
             if (description.Length > 200)
             {
                 description = description.Substring(0, 200);
