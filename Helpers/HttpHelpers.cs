@@ -6,9 +6,9 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Youtube2Spotify.Models;
+using Playlistic.Models;
 
-namespace Youtube2Spotify.Helpers
+namespace Playlistic.Helpers
 {
     public static class HttpHelpers
     {

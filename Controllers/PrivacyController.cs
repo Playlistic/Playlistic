@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Youtube2Spotify.Models;
+using Playlistic.Models;
 
-namespace Youtube2Spotify.Controllers
+namespace Playlistic.Controllers
 {
     public class PrivacyController : Controller
     {

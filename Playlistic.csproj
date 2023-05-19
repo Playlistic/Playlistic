@@ -4,6 +4,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <CopyRefAssembliesToPublishDirectory>false</CopyRefAssembliesToPublishDirectory>
     <UserSecretsId>6ce60ce1-067f-4017-8ecc-e295930f9ea7</UserSecretsId>
+    <AssemblyName>Playlistic</AssemblyName>
+    <RootNamespace>Playlistic</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

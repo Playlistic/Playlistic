@@ -1,9 +1,9 @@
 ﻿using SpotifyAPI.Web;
 using System.Collections.Generic;
 using System.Linq;
-using Youtube2Spotify.Helpers;
+using Playlistic.Helpers;
 
-namespace Youtube2Spotify.Models
+namespace Playlistic.Models
 {
     public class ResultModel
     {

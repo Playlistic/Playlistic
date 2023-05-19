@@ -17,10 +17,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Youtube2Spotify.Helpers;
-using Youtube2Spotify.Models;
+using Playlistic.Helpers;
+using Playlistic.Models;
 
-namespace Youtube2Spotify.Controllers
+namespace Playlistic.Controllers
 {
     public class YoutubePlaylistMetadata
     {

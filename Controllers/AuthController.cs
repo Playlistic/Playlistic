@@ -4,15 +4,15 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Youtube2Spotify.Models;
+using Playlistic.Models;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
 using System.Web;
-using Youtube2Spotify.Helpers;
+using Playlistic.Helpers;
 using Microsoft.Extensions.Configuration;
 
-namespace Youtube2Spotify.Controllers
+namespace Playlistic.Controllers
 {
     public class AuthController : Controller
     {

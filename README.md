@@ -1,4 +1,4 @@
-# Youtube2Spotify
+# Playlistic
 Attempt to find Spotify alternatives to Youtube automatically generated playlists
 
 Asks for Spotify authentication and takes a youtube playlist ID,

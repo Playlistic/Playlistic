@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Youtube2Spotify.Helpers
+namespace Playlistic.Helpers
 {
     public class MyHttpContext
     {

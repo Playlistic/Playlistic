@@ -1,6 +1,6 @@
 using System;
 
-namespace Youtube2Spotify.Models
+namespace Playlistic.Models
 {
     public class ErrorViewModel
     {

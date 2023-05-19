@@ -8,9 +8,9 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Youtube2Spotify.Helpers;
+using Playlistic.Helpers;
 
-namespace Youtube2Spotify
+namespace Playlistic
 {
     public class Startup
     {

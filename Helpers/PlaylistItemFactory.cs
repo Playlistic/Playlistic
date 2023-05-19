@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using Youtube2Spotify.Models;
+using Playlistic.Models;
 
-namespace Youtube2Spotify.Helpers
+namespace Playlistic.Helpers
 {
     public class PlaylistItem
     {

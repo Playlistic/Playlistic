@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System;
 
-namespace Youtube2Spotify
+namespace Playlistic
 {
     public class Program
     {

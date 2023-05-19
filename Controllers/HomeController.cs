@@ -2,9 +2,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Youtube2Spotify.Models;
+using Playlistic.Models;
 
-namespace Youtube2Spotify.Controllers
+namespace Playlistic.Controllers
 {
     public class HomeController : Controller
     {
