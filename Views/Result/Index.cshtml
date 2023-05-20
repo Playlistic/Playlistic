@@ -41,30 +41,38 @@
     <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
     <h2>New Spotify Playlist: </h2>
     <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
-    <table class="table table-striped table-responsive-sm">
-        <thead class="thead-light">
-            <tr>
-                <th scope="col">#</th>
-                <th scope="col">Youtube Thumbnail</th>
-                <th scope="col">Youtube Videos Total: (@Model.OriginalYoutubeVideoCount)</th>
-                <th scope="col">Spotify Tracks Total: Found: (@Model.FoundSpotifyTracks);</th>
-                <th scope="col">Spotify Album Art</th>
-            </tr>
-        </thead>
-        <tbody>
-            @for (int i = 0; i < Model.OriginalYoutubeVideoCount; i++)
-            {
-                int j = i + 1;
+    <div class="table-responsive">
+        <table class="table table-striped w-auto" style="text-align: center">
+            <thead class="thead-light">
                 <tr>
-                    <th scope="row">@j</th>
-                    <td scope="row"><img class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" /></td>
-                    <td scope="row">@Model.PlaylistItems[i].YoutubeArtists - @Model.PlaylistItems[i].SpotifySearchObject.Song</td>
-                    <td scope="row">@Model.PlaylistItems[i].SpotifyArtists - @Model.PlaylistItems[i].FoundSpotifyTrack?.Name</td>
-                    <td scope="row"><img class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" /></td>
+                    <th style="width: 5%" scope="col">#</th>
+                    <th style="width: 47.5%" scope="col">Youtube Videos Total: (@Model.OriginalYoutubeVideoCount)</th>
+                    <th style="width: 47.5%" scope="col">Spotify Tracks Total: Found: (@Model.FoundSpotifyTracks)</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.OriginalYoutubeVideoCount; i++)
+                {
+                    int j = i + 1;
+                    <tr>
+                        <th scope="row">@j</th>
+                        <td>
+                            <p>@Model.PlaylistItems[i].YoutubeArtists :</p>
+                            <p>@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle</p>
+                            <p><img align="middle" style="min-width:50%" class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" /></p>
+                        </td>
+                        <td>
+                            <a href="@Model.PlaylistItems[i].FoundSpotifyTrack?.Uri">
+                                <p>@Model.PlaylistItems[i].SpotifyArtists :</p>
+                                <p>@Model.PlaylistItems[i].FoundSpotifyTrack?.Name</p>
+                            </a>
+                            <p><img align="middle" style="max-width:50%" class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" /></p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 
