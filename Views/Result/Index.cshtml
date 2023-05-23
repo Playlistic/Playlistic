@@ -42,7 +42,7 @@
     <h2>New Spotify Playlist: </h2>
     <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
     <div class="table-responsive">
-        <table class="table table-striped w-auto" style="text-align: center">
+        <table class="table table-striped w-auto" style="text-align: start">
             <thead class="thead-light">
                 <tr>
                     <th style="width: 5%" scope="col">#</th>
@@ -57,16 +57,32 @@
                     <tr>
                         <th scope="row">@j</th>
                         <td>
-                            <p>@Model.PlaylistItems[i].YoutubeArtists :</p>
-                            <p>@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle</p>
-                            <p><img align="middle" style="min-width:50%" class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" /></p>
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <img style="height:10em;object-fit: contain" class="img-fluid d-block float-start" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" />
+                                </div>
+                                <div class="row">
+                                    @Model.PlaylistItems[i].YoutubeArtists :
+                                </div>
+                                <div class="row">
+                                    @Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle
+                                </div>
+                            </div>
                         </td>
                         <td>
-                            <a href="@Model.PlaylistItems[i].FoundSpotifyTrack?.Uri">
-                                <p>@Model.PlaylistItems[i].SpotifyArtists :</p>
-                                <p>@Model.PlaylistItems[i].FoundSpotifyTrack?.Name</p>
-                            </a>
-                            <p><img align="middle" style="max-width:50%" class="img-fluid img-thumbnail rounded mx-auto d-block" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" /></p>
+                            <div class="container-fluid">
+                                <div class="row">
+                                    <img style="height:10em;object-fit: contain" class="img-fluid d-block float-start" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" />
+                                </div>
+                                <a href="@Model.PlaylistItems[i].FoundSpotifyTrack?.Uri">
+                                    <div class="row">
+                                        @Model.PlaylistItems[i].SpotifyArtists :
+                                    </div>
+                                    <div class="row">
+                                        @Model.PlaylistItems[i].FoundSpotifyTrack?.Name
+                                    </div>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 }
