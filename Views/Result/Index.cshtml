@@ -77,7 +77,10 @@
                                 </div>
                                 <a href="@Model.PlaylistItems[i].FoundSpotifyTrack?.Uri">
                                     <div class="row">
-                                        @Model.PlaylistItems[i].SpotifyArtists :
+                                        @Model.PlaylistItems[i].FoundSpotifyTrack?.Album
+                                    </div>
+                                    <div class="row">
+                                        @Model.PlaylistItems[i].SpotifyArtists
                                     </div>
                                     <div class="row">
                                         @Model.PlaylistItems[i].FoundSpotifyTrack?.Name
