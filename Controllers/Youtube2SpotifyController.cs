@@ -18,6 +18,8 @@ using System.Threading.Tasks;
 using System.Web;
 using Playlistic.Helpers;
 using Playlistic.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Playlistic.Controllers
 {
@@ -31,8 +33,10 @@ namespace Playlistic.Controllers
     public class Youtube2SpotifyController : Controller
     {
         private readonly IConfiguration _configuration;
-        public Youtube2SpotifyController(IConfiguration configuration)
+        private readonly IWebHostEnvironment _hostingEnvironment;
+        public Youtube2SpotifyController(IConfiguration configuration, IWebHostEnvironment hostingEnvironment)
         {
+            _hostingEnvironment = hostingEnvironment;
             _configuration = configuration;
             openAIAccessToken = configuration["OpenAIAPIKey"];
             openAIAssistantSetupString = configuration["OpenAIPrompt"];
@@ -173,6 +177,7 @@ namespace Playlistic.Controllers
                     resultModel.PlaylistItems = PlaylistItems;
                     resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
                     resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
+                    string resultModelString = JsonConvert.SerializeObject(resultModel);
                     return resultModel;
                 }
                 throw new Exception("Failed to add tracks to spotify");
@@ -185,6 +190,15 @@ namespace Playlistic.Controllers
                 return new ResultModel() { faultTriggered = true, faultCode = faultCode.ConversionFailed, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
             }
 
+        }
+
+        /// <summary>
+        /// Simulate a conversion result without having to execute the actual conversion process
+        /// </summary>
+        /// <returns></returns>
+        public PartialViewResult FrontEndTest()
+        {
+            return PartialView("~/Views/Result/Index.cshtml", JsonConvert.DeserializeObject<ResultModel>(System.IO.File.ReadAllText($"{_hostingEnvironment.WebRootPath}\\SampleData.json")));
         }
 
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(string playlistId)
