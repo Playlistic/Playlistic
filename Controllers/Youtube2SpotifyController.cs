@@ -336,9 +336,6 @@ namespace Playlistic.Controllers
                         playlistItem.FoundSpotifyTrack = fullTrack;
                     }
                 }
-
-                playlistItem.FoundSpotifyTrack = null;
-
             }
             return playlistItems;
         }
@@ -355,13 +352,22 @@ namespace Playlistic.Controllers
                     string songName = fullTrack.Name.ToString();
                     trackURI.Add($"\"{fullTrack.Uri}\"");
                 }
+                continue;
+            }
+            try
+            {
+                HttpWebResponse httpWebResponse = AddTracksToPlaylist(spotifyPlaylistId, string.Join(",", trackURI));
+                if (httpWebResponse.StatusCode == HttpStatusCode.Created)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
             }
 
-            HttpWebResponse httpWebResponse = AddTracksToPlaylist(spotifyPlaylistId, string.Join(",", trackURI));
-            if (httpWebResponse.StatusCode == HttpStatusCode.Created)
-            {
-                return true;
-            }
+          
             return false;
         }
 
