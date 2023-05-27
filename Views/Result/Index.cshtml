@@ -73,17 +73,34 @@
                         <td>
                             <div class="container-fluid">
                                 <div class="row">
-                                    <img style="height:10em;object-fit: contain" class="img-fluid d-block float-start" src="@Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url" />
+                                    @{
+                                        string spotifyAlbumArt = "https://img.youtube.com/vi/MSeMERaD1Mk/sddefault.jpg";
+                                        string spotifyAlbumName = "Unable to find album";
+                                        string spotifyTrackURI = "https://www.spotify.com/us/404/";
+                                        string spotifyArtists = "Unable to find artists on Spotify";
+                                        string spotifyFoundSpotifyTrackName = "Unable to find track on spotify";
+
+                                        if (Model.PlaylistItems[i].FoundSpotifyTrack!=null)
+                                        {
+                                            spotifyAlbumArt = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url;
+                                            spotifyAlbumName = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Name;
+                                            spotifyTrackURI = Model.PlaylistItems[i].FoundSpotifyTrack?.Uri;
+                                            spotifyArtists = Model.PlaylistItems[i].SpotifyArtists;
+                                            spotifyFoundSpotifyTrackName = Model.PlaylistItems[i].FoundSpotifyTrack.Name;
+                                        }
+
+                                    }
+                                    <img style="height:10em;object-fit: contain" class="img-fluid d-block float-start" src="@spotifyAlbumArt" />
                                 </div>
-                                <a href="@Model.PlaylistItems[i].FoundSpotifyTrack?.Uri">
+                                <a href="@spotifyTrackURI">
                                     <div class="row">
-                                        @Model.PlaylistItems[i].FoundSpotifyTrack?.Album.Name
+                                        @spotifyAlbumName
                                     </div>
                                     <div class="row">
-                                        @Model.PlaylistItems[i].SpotifyArtists
+                                        @spotifyArtists
                                     </div>
                                     <div class="row">
-                                        @Model.PlaylistItems[i].FoundSpotifyTrack?.Name
+                                        @spotifyFoundSpotifyTrackName
                                     </div>
                                 </a>
                             </div>
