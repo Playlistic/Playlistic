@@ -332,12 +332,8 @@ namespace Playlistic.Controllers
                 {
                     if (searchResponse.Tracks.Items.Count > 0)
                     {
-                        if(searchResponse.Tracks.Items[0].Name.Contains(playlistItem.SpotifySearchObject.Song) || searchResponse.Tracks.Items[0].Name.Equals(playlistItem.SpotifySearchObject.Song))
-                        {
-                            FullTrack fullTrack = searchResponse.Tracks.Items[0];
-                            playlistItem.FoundSpotifyTrack = fullTrack;
-                            continue;
-                        }
+                        FullTrack fullTrack = searchResponse.Tracks.Items[0];
+                        playlistItem.FoundSpotifyTrack = fullTrack;
                     }
                 }
 
