@@ -38,7 +38,7 @@ namespace Playlistic.Controllers
         {
             _hostingEnvironment = hostingEnvironment;
             _configuration = configuration;
-            openAIAccessToken = configuration["OpenAIAPIKey"];
+            openAIAccessToken = configuration["OpenAIKey"];
             openAIAssistantSetupString = configuration["OpenAIPrompt"];
             googleAPIAccessToken = configuration["YoutubeAPIKey"];
         }
@@ -247,8 +247,33 @@ namespace Playlistic.Controllers
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
                 string songArtists = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[1].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
-                string originalYoutubeVideoId = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.playlistItemData.videoId.Value;
                 string originalYoutubeThumbnailSmall = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url.Value;
+
+                string originalYoutubeVideoId = string.Empty;
+
+                try
+                {
+                    originalYoutubeVideoId = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.playlistItemData.videoId.Value;
+                }
+                catch
+                {
+
+                    string pattern = @"/([a-zA-Z0-9_-]+)\.[a-z]+$";
+
+                    // The match object
+                    Match match = Regex.Match(musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url.Value, pattern);
+
+                    // The video id
+                    string videoId = "";
+
+                    // If a match is found, extract the video id
+                    if (match.Success)
+                    {
+                        originalYoutubeVideoId = match.Groups[1].Value;
+                    }
+
+
+                }
 
                 PlaylistItem playlistItem = new PlaylistItem();
                 playlistItem.SpotifySearchObject.Song = songName;
@@ -303,20 +328,21 @@ namespace Playlistic.Controllers
 
                 SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
 
-                if (!searchResponse.Tracks.Total.HasValue || !(searchResponse.Tracks.Total > 0))
-                {
-                    //still add blank entry to make the list look nice
-                    playlistItem.FoundSpotifyTrack = null;
-                    continue;
-                }
                 if (searchResponse.Tracks.Items != null)
                 {
                     if (searchResponse.Tracks.Items.Count > 0)
                     {
-                        FullTrack fullTrack = searchResponse.Tracks.Items[0];
-                        playlistItem.FoundSpotifyTrack = fullTrack;
+                        if(searchResponse.Tracks.Items[0].Name.Contains(playlistItem.SpotifySearchObject.Song) || searchResponse.Tracks.Items[0].Name.Equals(playlistItem.SpotifySearchObject.Song))
+                        {
+                            FullTrack fullTrack = searchResponse.Tracks.Items[0];
+                            playlistItem.FoundSpotifyTrack = fullTrack;
+                            continue;
+                        }
                     }
                 }
+
+                playlistItem.FoundSpotifyTrack = null;
+
             }
             return playlistItems;
         }

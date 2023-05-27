@@ -13,7 +13,7 @@ namespace Playlistic.Helpers
         public SpotifySearchObject SpotifySearchObject { get; set; }
         public OriginalYoutubeObject OriginalYoutubeObject { get; set; }
         public FullTrack? FoundSpotifyTrack { get; set; }
-        public string SpotifyArtists => string.Join(", ", FoundSpotifyTrack?.Artists.Select(y => y.Name).ToList());
+        public string SpotifyArtists => FoundSpotifyTrack != null ? string.Join(", ", FoundSpotifyTrack.Artists.Select(y => y.Name).ToList()) : string.Empty;
         public string YoutubeArtists => OriginalYoutubeObject.VideoChannelTitle;
         public PlaylistItem()
         {
