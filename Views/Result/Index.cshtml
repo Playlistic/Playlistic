@@ -44,20 +44,17 @@
     <a href="@Model.SpotifyLink">@Model.SpotifyLink</a>
 
     <h3>Youtube Videos Total: (@Model.OriginalYoutubeVideoCount)</h3>
-    <div class="container">
-        <div class="row">
+    <div class="container" style="background-color:brown">
+        <div class="row p-1">
             @for (int i = 0; i < Model.OriginalYoutubeVideoCount; i++)
             {
-                <div class="col-6 col-sm-4 col-lg-2">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <img style="height:10em;object-fit: contain" class="img-fluid d-block float-start" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" />
-                        </div>
-                        <div class="row">
-                            @Model.PlaylistItems[i].YoutubeArtists :
-                        </div>
-                        <div class="row">
-                            @Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle
+                <div class="col-6 col-md-3 p-1">
+                    <div class="card" style="height:100%">
+                        <img class="card-img-top img-fluid d-block float-start" style="height:10em;object-fit:contain;background-color:black" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" alt="Youtube Thumbnail">
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate">@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle</h5>
+                            <h6 class="card-subtitle mb-2 text-muted text-truncate">@Model.PlaylistItems[i].YoutubeArtists </h6>
+                            <a href="https://youtube.com/watch?v=@Model.PlaylistItems[i].OriginalYoutubeObject.VideoId" class="btn btn-danger btn-block">Original Video</a>
                         </div>
                     </div>
                 </div>
@@ -66,43 +63,36 @@
     </div>
 
     <h3>Spotify Tracks Total: Found: (@Model.FoundSpotifyTracks)</h3>
-    <div class="container">
-        <div class="row">
+    <div class="container" style="background-color:#1DB954">
+        <div class="row p-1">
             @for (int i = 0; i < Model.FoundSpotifyTracks; i++)
             {
-                <div class="col-6 col-sm-4 col-lg-2">
-                    <div class="container-fluid">
-                        @{
-                            string spotifyAlbumArt = "https://img.youtube.com/vi/MSeMERaD1Mk/sddefault.jpg";
-                            string spotifyAlbumName = "Unable to find album";
-                            string spotifyTrackURI = "https://www.spotify.com/us/404/";
-                            string spotifyArtists = "Unable to find artists on Spotify";
-                            string spotifyFoundSpotifyTrackName = "Unable to find track on spotify";
+                <div class="col-6 col-md-3 p-1">
+                    @{
+                        string spotifyAlbumArt = "https://img.youtube.com/vi/MSeMERaD1Mk/sddefault.jpg";
+                        string spotifyAlbumName = "Unable to find album";
+                        string spotifyTrackURI = "https://www.spotify.com/us/404/";
+                        string spotifyArtists = "Unable to find artists on Spotify";
+                        string spotifyFoundSpotifyTrackName = "Unable to find track on spotify";
 
-                            if (Model.PlaylistItems[i].FoundSpotifyTrack != null)
-                            {
-                                spotifyAlbumArt = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url;
-                                spotifyAlbumName = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Name;
-                                spotifyTrackURI = Model.PlaylistItems[i].FoundSpotifyTrack?.Uri;
-                                spotifyArtists = Model.PlaylistItems[i].SpotifyArtists;
-                                spotifyFoundSpotifyTrackName = Model.PlaylistItems[i].FoundSpotifyTrack.Name;
-                            }
-
+                        if (Model.PlaylistItems[i].FoundSpotifyTrack != null)
+                        {
+                            spotifyAlbumArt = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url;
+                            spotifyAlbumName = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Name;
+                            spotifyTrackURI = Model.PlaylistItems[i].FoundSpotifyTrack?.Uri;
+                            spotifyArtists = Model.PlaylistItems[i].SpotifyArtists;
+                            spotifyFoundSpotifyTrackName = Model.PlaylistItems[i].FoundSpotifyTrack.Name;
                         }
-                        <div class="row">
-                            <img style="height:10em;object-fit: contain" class="img-fluid d-block float-start" src="@spotifyAlbumArt" />
+
+                    }
+                    <div class="card" style="height:100%">
+                        <img style="height:10em;object-fit: contain;background-color:black" class="card-img-top img-fluid d-block float-start" src="@spotifyAlbumArt" />
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate">@spotifyFoundSpotifyTrackName</h5>
+                            <h6 class="card-subtitle mb-2 text-muted text-truncate">@spotifyArtists</h6>
+                            <p class="card-text text-truncate">@spotifyAlbumName</p>
+                            <a href="@spotifyTrackURI" class="btn btn-block Listen On Spotify" style="background-color:#1DB954"><i class="bi bi-spotify"></i> Listen On Spotify</a>
                         </div>
-                        <a href="@spotifyTrackURI">
-                            <div class="row">
-                                @spotifyAlbumName
-                            </div>
-                            <div class="row">
-                                @spotifyArtists
-                            </div>
-                            <div class="row">
-                                @spotifyFoundSpotifyTrackName
-                            </div>
-                        </a>
                     </div>
                 </div>
             }
