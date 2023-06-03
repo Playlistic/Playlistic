@@ -19,4 +19,8 @@
     <PackageReference Include="SpotifyAPI.Web.Auth" Version="7.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\static\" />
+  </ItemGroup>
+
 </Project>
