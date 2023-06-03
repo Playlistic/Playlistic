@@ -44,14 +44,16 @@
     <a href="@Model.SpotifyLink" class="btn" style="width:15em;background-color:#1DB954"><i class="bi bi-spotify"></i> Open On Spotify</a>
 
     <h3>Youtube Videos Total: (@Model.OriginalYoutubeVideoCount)</h3>
-    <div class="container" style="background-color:brown">
+    <div class="container-fluid" style="background-color:brown">
         <div class="row p-1">
             @for (int i = 0; i < Model.OriginalYoutubeVideoCount; i++)
             {
-                <div class="col-6 col-md-3 p-1">
+                int count = i + 1;
+                <div class="col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 p-1">
                     <div class="card" style="height:100%">                       
                         <img class="card-img-top img-fluid d-block float-start" style="height:10em;object-fit:contain;background-color:black" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" alt="Youtube Thumbnail">
                         <div class="card-body" style="height:100%">
+                            <h4 class="card-subtitle mb-2 text-muted"><span class="badge badge-secondary">@count</span></h4>
                             <h5 class="card-title">@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle</h5>
                             <h6 class="card-subtitle mb-2 text-muted ">@Model.PlaylistItems[i].YoutubeArtists </h6>
                         </div>
@@ -65,33 +67,32 @@
     </div>
 
     <h3>Spotify Tracks Total: Found: (@Model.FoundSpotifyTracks)</h3>
-    <div class="container" style="background-color:#1DB954">
+    <div class="container-fluid" style="background-color:#1DB954">
         <div class="row p-1">
             @for (int i = 0; i < Model.FoundSpotifyTracks; i++)
             {
-                <div class="col-6 col-md-3 p-1">
-                    @{
-                        string spotifyAlbumArt = "https://img.youtube.com/vi/MSeMERaD1Mk/sddefault.jpg";
-                        string spotifyAlbumName = "Unable to find album";
-                        string spotifyTrackURI = "https://www.spotify.com/us/404/";
-                        string spotifyArtists = "Unable to find artists on Spotify";
-                        string spotifyFoundSpotifyTrackName = "Unable to find track on spotify";
+                string spotifyAlbumArt = "https://img.youtube.com/vi/MSeMERaD1Mk/sddefault.jpg";
+                string spotifyAlbumName = "Unable to find album";
+                string spotifyTrackURI = "https://www.spotify.com/us/404/";
+                string spotifyArtists = "Unable to find artists on Spotify";
+                string spotifyFoundSpotifyTrackName = "Unable to find track on spotify";
+                int count = i + 1;
+                if (Model.PlaylistItems[i].FoundSpotifyTrack != null)
+                {
+                    spotifyAlbumArt = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url;
+                    spotifyAlbumName = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Name;
+                    spotifyTrackURI = Model.PlaylistItems[i].FoundSpotifyTrack?.Uri;
+                    spotifyArtists = Model.PlaylistItems[i].SpotifyArtists;
+                    spotifyFoundSpotifyTrackName = Model.PlaylistItems[i].FoundSpotifyTrack.Name;
+                }
 
-                        if (Model.PlaylistItems[i].FoundSpotifyTrack != null)
-                        {
-                            spotifyAlbumArt = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Images.First().Url;
-                            spotifyAlbumName = Model.PlaylistItems[i].FoundSpotifyTrack.Album.Name;
-                            spotifyTrackURI = Model.PlaylistItems[i].FoundSpotifyTrack?.Uri;
-                            spotifyArtists = Model.PlaylistItems[i].SpotifyArtists;
-                            spotifyFoundSpotifyTrackName = Model.PlaylistItems[i].FoundSpotifyTrack.Name;
-                        }
-
-                    }
+                <div class="col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 p-1">
                     <div class="card" style="height:100%">
                         <img style="height:10em;object-fit: contain;background-color:black;background-image:url(../static/Spotify_Icon_RGB_White.png);background-size:10%;background-repeat:no-repeat;background-position-x:2.5%;background-position-y:3.5%" class="card-img-top img-fluid d-block float-start" src="@spotifyAlbumArt" />
                         <div class="card-body" style="height:100%">
-                            <h5 class="card-title ">@spotifyFoundSpotifyTrackName</h5>
-                            <h6 class="card-subtitle mb-2 text-muted ">@spotifyArtists</h6>
+                            <h4 class="card-subtitle mb-2 text-muted"><span class="badge badge-secondary">@count</span></h4>
+                            <h5 class="card-title "> @spotifyFoundSpotifyTrackName</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">@spotifyArtists</h6>
                             <p class="card-text ">@spotifyAlbumName</p>
                         </div>
                         <div class="card-body">
