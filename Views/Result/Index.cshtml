@@ -60,22 +60,22 @@
     </div>
 
     <div class="row">
-        <div class="col-6">
+        <div class="col-6 pr-0 pr-sm-1 pr-md-3">
             <div class="container-fluid" style="background-color:#B2071d">
-                <div class="row p-1">
+                <div class="row p-1 p-sm-2">
                     @for (int i = 0; i < Model.OriginalYoutubeVideoCount; i++)
                     {
                         int count = i + 1;
-                        <div class="col-12 col-sm-12 col-md-12 col-lg-6 col-xl-4 p-1">
+                        <div class="col-12 col-sm-12 col-lg-6 col-xl-4 p-1">
                             <div class="card" style="height:25em">
                                 <img class="card-img-top img-fluid d-block float-start" style="height:10em;object-fit:contain;background-color:black" src="@Model.PlaylistItems[i].OriginalYoutubeObject.ThumbnailURL" alt="@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle">
-                                <div class="card-body overflow-auto" style="height:10em">
+                                <div class="card-body overflow-auto p-2 p-sm-3" style="height:10em">
                                     <h4 class="card-subtitle mb-2 text-muted"><span class="badge badge-secondary">@count</span></h4>
                                     <h5 class="card-title">@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle</h5>
                                     <h6 class="card-subtitle mb-2 text-muted ">@Model.PlaylistItems[i].YoutubeArtists </h6>
                                 </div>
-                                <div class="card-body" style="height:5em">
-                                    <a href="https://youtube.com/watch?v=@Model.PlaylistItems[i].OriginalYoutubeObject.VideoId" class="btn btn-block text-white" style="background-color:#B2071d">Original Video</a>
+                                <div class="card-body p-2 p-sm-3 d-flex align-items-end" style="height:5em">
+                                    <a href="https://youtube.com/watch?v=@Model.PlaylistItems[i].OriginalYoutubeObject.VideoId" class="btn btn-block text-white" style="background-color:#B2071d;height:100%;vertical-align:middle"><i class="bi bi-youtube"></i> Original Video</a>
                                 </div>
                             </div>
                         </div>
@@ -83,10 +83,9 @@
                 </div>
             </div>
         </div>
-        <div class="col-6">
-
+        <div class="col-6 pl-0 pl-sm-1 pl-md-3">
             <div class="container-fluid" style="background-color:#1DB954">
-                <div class="row p-1">
+                <div class="row p-1 p-sm-2">
                     @for (int i = 0; i < Model.FoundSpotifyTracks; i++)
                     {
                         string spotifyAlbumArt = "https://img.youtube.com/vi/MSeMERaD1Mk/sddefault.jpg";
@@ -104,17 +103,17 @@
                             spotifyFoundSpotifyTrackName = Model.PlaylistItems[i].FoundSpotifyTrack.Name;
                         }
 
-                        <div class="col-12 col-sm-12 col-md-12 col-lg-6 col-xl-4 p-1">
+                        <div class="col-12 col-sm-12 col-lg-6 col-xl-4 p-1">
                             <div class="card" style="height:25em">
-                                <img class="card-img-top img-fluid d-block float-start" style="height:10em;object-fit:contain;background-color:black;background-image:url(../static/Spotify_Icon_RGB_White.png);background-size:10%;background-repeat:no-repeat;background-position-x:2.5%;background-position-y:3.5%" src="@spotifyAlbumArt" alt="@spotifyFoundSpotifyTrackName" />
-                                <div class="card-body overflow-auto" style="height:10em">
+                                <img class="card-img-top img-fluid d-block float-start p-4 p-sm-1 p-md-3 p-lg-2 p-xl-3" style="height:10em;object-fit:contain;background-color:black;background-image:url(../static/Spotify_Icon_RGB_White.png);background-size:10%;background-repeat:no-repeat;background-position-x:2.5%;background-position-y:3.5%" src="@spotifyAlbumArt" alt="@spotifyFoundSpotifyTrackName" />
+                                <div class="card-body overflow-auto p-2 p-sm-3" style="height:10em">
                                     <h4 class="card-subtitle mb-2 text-muted"><span class="badge badge-secondary">@count</span></h4>
                                     <h5 class="card-title "> @spotifyFoundSpotifyTrackName</h5>
                                     <h6 class="card-subtitle mb-2 text-muted">@spotifyArtists</h6>
                                     <p class="card-text ">@spotifyAlbumName</p>
                                 </div>
-                                <div class="card-body" style="height:5em">
-                                    <a href="@spotifyTrackURI" class="btn btn-block" style="background-color:#1DB954"><i class="bi bi-spotify"></i> Listen On Spotify</a>
+                                <div class="card-body p-2 p-sm-3 d-flex align-items-end" style="height:5em">
+                                    <a href="@spotifyTrackURI" class="btn btn-block" style="background-color:#1DB954;height:100%;vertical-align:middle"><i class="bi bi-spotify"></i> Listen On Spotify</a>
                                 </div>
                             </div>
                         </div>
