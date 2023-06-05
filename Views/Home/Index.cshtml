@@ -6,7 +6,8 @@
 
 @if (!Model.Authenticated)
 {
-    <h1>TLDR: I need permission to make the playlist on your spotify account for you</h1>
+    <h1>TLDR: I move your music playlist from youtube to spotify</h1>
+    <h2>I need permission to make the playlist on your spotify account for you</h2>
 
     <form id="authBlock" method="post" asp-action="TriggerAuth" asp-controller="Auth">
         <div class="form-group">
