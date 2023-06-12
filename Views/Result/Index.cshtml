@@ -20,16 +20,6 @@
             <h2>Original Youtube Playlist: </h2>
             <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
         }
-        else if (@Model.faultCode == faultCode.AuthExpired)
-        {
-            <h2>So you took too long to find your playlist that your spotify authorization expired?</h2>
-            <h2>You'll need to reauthenticate with spotify, click the button below</h2>
-            <form id="authBlock" method="post" asp-action="TriggerAuth" asp-controller="Auth">
-                <div class="form-group">
-                    <button class="btn btn-primary" type="submit">Authorize Spotify</button>
-                </div>
-            </form>
-        }
     }
 
 </div>
@@ -74,8 +64,8 @@
                                     <h5 class="card-title">@Model.PlaylistItems[i].OriginalYoutubeObject.VideoTitle</h5>
                                     <h6 class="card-subtitle mb-2 text-muted ">@Model.PlaylistItems[i].YoutubeArtists </h6>
                                 </div>
-                                <div class="card-body p-2 p-sm-3 d-flex align-items-end" style="height:5em">
-                                    <a href="https://youtube.com/watch?v=@Model.PlaylistItems[i].OriginalYoutubeObject.VideoId" class="btn btn-block text-white" style="background-color:#B2071d;height:100%;vertical-align:middle"><i class="bi bi-youtube"></i> Original Video</a>
+                                <div class="card-body p-2 p-sm-2 d-flex align-items-end" style="height:5em">
+                                    <a href="https://youtube.com/watch?v=@Model.PlaylistItems[i].OriginalYoutubeObject.VideoId" class="btn btn-block text-white p-1" style="background-color:#B2071d;height:auto;vertical-align:middle"><i class="bi bi-youtube"></i> Original Video</a>
                                 </div>
                             </div>
                         </div>
@@ -112,8 +102,8 @@
                                     <h6 class="card-subtitle mb-2 text-muted">@spotifyArtists</h6>
                                     <p class="card-text ">@spotifyAlbumName</p>
                                 </div>
-                                <div class="card-body p-2 p-sm-3 d-flex align-items-end" style="height:5em">
-                                    <a href="@spotifyTrackURI" class="btn btn-block" style="background-color:#1DB954;height:100%;vertical-align:middle"><i class="bi bi-spotify"></i> Listen On Spotify</a>
+                                <div class="card-body p-2 p-sm-2 d-flex align-items-end" style="height:5em">
+                                    <a href="@spotifyTrackURI" class="btn btn-block p-1" style="background-color:#1DB954;height:auto;vertical-align:middle"><i class="bi bi-spotify"></i> Listen On Spotify</a>
                                 </div>
                             </div>
                         </div>
