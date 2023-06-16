@@ -67,9 +67,8 @@ namespace Playlistic.Controllers
             }
             catch
             {
-                resultModel.faultTriggered = true;
-                resultModel.faultCode = faultCode.AuthExpired;
-                return Result(resultModel);
+                HomeModel homeModel = new HomeModel(false);
+                return Home(homeModel);
             }
 
 
@@ -81,6 +80,10 @@ namespace Playlistic.Controllers
                 YoutubePlaylistID = youtubePlaylistID;
                 resultModel = await ConvertYoutubePlaylist2SpotifyPlaylist(youtubePlaylistID);
             }
+            else
+            {
+                return Home();
+            }
 
             return Result(resultModel);
         }
@@ -90,6 +93,10 @@ namespace Playlistic.Controllers
             return PartialView("~/Views/Result/Index.cshtml", result);
         }
 
+        public PartialViewResult Home(HomeModel home = null)
+        {
+            return PartialView("~/Views/Home/Index.cshtml", home);
+        }
 
         private JArray YoutubePlaylistItemsFromHTML(string playlistId)
         {

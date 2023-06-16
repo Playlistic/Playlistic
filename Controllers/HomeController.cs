@@ -17,8 +17,7 @@ namespace Playlistic.Controllers
 
         public IActionResult Index()
         {
-            homeModel = new HomeModel();
-            homeModel.Authenticated = false;
+            homeModel = new HomeModel(false);
             HttpContext.Session.TryGetValue("access_token", out byte[] access_token);
             HttpContext.Session.TryGetValue("expire_time", out byte[] expire_time_raw);
 
@@ -29,7 +28,7 @@ namespace Playlistic.Controllers
 
                 if (DateTime.Now < expire_time)
                 {
-                    homeModel.Authenticated = true;
+                    homeModel.SetAuthenticated(true);
                 }
             }
 
