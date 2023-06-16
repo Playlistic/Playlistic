@@ -53,6 +53,7 @@ namespace Playlistic.Controllers
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
             ResultModel resultModel = new ResultModel();
+            HomeModel homeModel = new HomeModel(false);
             string access_Token = HttpContext.Session.GetString("access_token");
             try
             {
@@ -67,10 +68,9 @@ namespace Playlistic.Controllers
             }
             catch
             {
-                HomeModel homeModel = new HomeModel(false);
                 return Home(homeModel);
             }
-
+            homeModel.SetAuthenticated(true);
 
             spotify = new SpotifyClient(access_Token);
             HttpContext.Session.SetString("user_Id", await GetUserId());
@@ -82,7 +82,7 @@ namespace Playlistic.Controllers
             }
             else
             {
-                return Home();
+                return Home(homeModel);
             }
 
             return Result(resultModel);
