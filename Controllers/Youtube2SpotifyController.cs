@@ -145,7 +145,7 @@ namespace Playlistic.Controllers
             {
                 youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(youtubePlaylistId);
             }
-            catch
+            catch(Exception ex)
             {
                 //something is weird with the youtubePlaylistId
                 return new ResultModel(FaultCode.Unspported, $"https://youtube.com/playlist?list={youtubePlaylistId}");
@@ -157,14 +157,13 @@ namespace Playlistic.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-                //cutting list down to 25 because of ChatGPT text limit
-                PlaylistItems = GetPreliminaryPlaylistItems(playlist);
-
-                if (PlaylistItems.Count < 1)
+                if(playlist == null)
                 {
                     //empty playlist, halt further processing
                     return new ResultModel(FaultCode.EmptyPlaylist, $"https://youtube.com/playlist?list={youtubePlaylistId}");
                 }
+
+                PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
                 if (PlaylistItems.Count > 12)
                 {
@@ -232,16 +231,22 @@ namespace Playlistic.Controllers
             {
                 description = description.Substring(0, 200);
             }
-
-            using (Stream stream = GetStreamFromUrl(coverArt))
+            try
             {
-                using (var ms = new MemoryStream())
+                using (Stream stream = GetStreamFromUrl(coverArt))
                 {
-                    stream.CopyTo(ms);
-                    byte[] fileBytes = ms.ToArray();
-                    base64ImageString = Convert.ToBase64String(fileBytes);
+                    using (var ms = new MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        byte[] fileBytes = ms.ToArray();
+                        base64ImageString = Convert.ToBase64String(fileBytes);
+                    }
                 }
             }
+            catch
+            {
+                base64ImageString = string.Empty;
+            }         
 
             return new YoutubePlaylistMetadata()
             {
@@ -320,7 +325,12 @@ namespace Playlistic.Controllers
         /// <returns></returns>
         public async Task<bool> UploadCoverToPlaylist(string SpotifyPlaylistId, YoutubePlaylistMetadata youtubePlaylistMetadata)
         {
-            bool uploadCover = await spotify.Playlists.UploadCover(SpotifyPlaylistId, youtubePlaylistMetadata.coverImageInBase64);
+            bool uploadCover = false;
+            if (!string.IsNullOrEmpty(youtubePlaylistMetadata.coverImageInBase64))
+            {
+                uploadCover = await spotify.Playlists.UploadCover(SpotifyPlaylistId, youtubePlaylistMetadata.coverImageInBase64);
+            }
+
             return uploadCover;
         }
 
@@ -331,7 +341,6 @@ namespace Playlistic.Controllers
         /// <returns></returns>
         public async Task<List<PlaylistItem>> SearchForSongsOnSpotify(List<PlaylistItem> playlistItems)
         {
-
             foreach (PlaylistItem playlistItem in playlistItems)
             {
                 SearchRequest searchRequest = new SearchRequest(SearchRequest.Types.Track, FormatSpotifySearchString(playlistItem));
