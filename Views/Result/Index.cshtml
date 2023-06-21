@@ -6,26 +6,31 @@
 }
 
 <div>
-    @if (@Model.faultTriggered)
+    @if (@Model.FaultTriggered)
     {
-        if (@Model.faultCode == faultCode.Unspported)
+        if (@Model.FaultCode == FaultCode.Unspported)
         {
             <h1>Failed to generate playlist</h1>
             <p>Could not scrape the youtube playlist, check the Id you pasted is complete.<br /> Currently Youtube generated "Mix" playlist are also not supported</p>
         }
-        else if (@Model.faultCode == faultCode.ConversionFailed)
+        else if (@Model.FaultCode == FaultCode.ConversionFailed)
         {
             <h1>Oof, the app failed to convert a legit youtube playlist</h1>
             <p>Please inform the poor basterd who made this <br />his app isn't working <a href="mailto:sam.b5687@gmail.com">by sending him an email.</a><br /> Be sure to include the playlist id you used below</p>
             <h2>Original Youtube Playlist: </h2>
             <a href="@Model.YoutubeLink">@Model.YoutubeLink</a>
         }
+        else if(Model.FaultCode == FaultCode.EmptyPlaylist)
+        {
+            <h1>Um, your playlist is empty</h1>
+            <p>You goof, XD</p>
+        }
     }
 
 </div>
 
 
-@if (!@Model.faultTriggered)
+@if (!@Model.FaultTriggered)
 {
     <h1>Your Converted Spotify Playlist is Ready!</h1>
 

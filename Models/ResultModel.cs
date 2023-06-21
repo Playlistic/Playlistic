@@ -12,20 +12,29 @@ namespace Playlistic.Models
         public string YoutubeLink;
         public int OriginalYoutubeVideoCount => PlaylistItems.Count;
         public int FoundSpotifyTracks => PlaylistItems.Select(x => x.FoundSpotifyTrack != null).Count();
-        public bool faultTriggered;
-        public faultCode faultCode;
+        public bool FaultTriggered;
+        public FaultCode FaultCode;
         public ResultModel()
         {
             PlaylistItems = new List<PlaylistItem>();
             SpotifyLink = string.Empty;
             YoutubeLink = string.Empty;
-            faultTriggered = false;
+            FaultTriggered = false;
+        }
+
+        public ResultModel(FaultCode faultCode, string YoutubePlaylistURL)
+        {
+            PlaylistItems = new List<PlaylistItem>();
+            SpotifyLink = string.Empty;
+            YoutubeLink = YoutubePlaylistURL;
+            FaultTriggered = true;
+            FaultCode = faultCode;
         }
     }
-    public enum faultCode
+    public enum FaultCode
     {
         Unspported,
         ConversionFailed,
-        AuthExpired
+        EmptyPlaylist
     }
 }

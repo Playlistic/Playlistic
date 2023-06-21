@@ -61,15 +61,14 @@ namespace Playlistic.Controllers
                 DateTime expire_Time = DateTime.Parse(expire_time_raw);
                 if (DateTime.Now > expire_Time)
                 {
-                    resultModel.faultTriggered = true;
-                    resultModel.faultCode = faultCode.AuthExpired;
-                    return Result(resultModel);
+                    return Home(homeModel);
                 }
             }
             catch
             {
                 return Home(homeModel);
             }
+
             homeModel.SetAuthenticated(true);
 
             spotify = new SpotifyClient(access_Token);
@@ -149,7 +148,7 @@ namespace Playlistic.Controllers
             catch
             {
                 //something is weird with the youtubePlaylistId
-                return new ResultModel() { faultTriggered = true, faultCode = faultCode.Unspported, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
+                return new ResultModel(FaultCode.Unspported, $"https://youtube.com/playlist?list={youtubePlaylistId}");
             }
 
             try
@@ -161,6 +160,11 @@ namespace Playlistic.Controllers
                 //cutting list down to 25 because of ChatGPT text limit
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
+                if (PlaylistItems.Count < 1)
+                {
+                    //empty playlist, halt further processing
+                    return new ResultModel(FaultCode.EmptyPlaylist, $"https://youtube.com/playlist?list={youtubePlaylistId}");
+                }
 
                 if (PlaylistItems.Count > 12)
                 {
@@ -194,7 +198,7 @@ namespace Playlistic.Controllers
             {
                 Console.WriteLine(exception.Message);
                 Console.WriteLine(exception.StackTrace);
-                return new ResultModel() { faultTriggered = true, faultCode = faultCode.ConversionFailed, YoutubeLink = $"https://music.youtube.com/playlist?list={youtubePlaylistId}" };
+                return new ResultModel(FaultCode.ConversionFailed, $"https://youtube.com/playlist?list={youtubePlaylistId}");
             }
 
         }
@@ -374,7 +378,7 @@ namespace Playlistic.Controllers
                 return false;
             }
 
-          
+
             return false;
         }
 
