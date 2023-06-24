@@ -29,6 +29,19 @@ namespace Playlistic.Controllers
         public string description;
         public string coverImageInBase64;
     }
+    public class VerificationObject
+    {
+        public int Index;
+        public string OriginalYoutubeName;
+        public string FoundSpotifyName;
+
+        public VerificationObject(int index, string originalYoutubeName, string foundSpotifyName)
+        {
+            this.Index = index;
+            this.OriginalYoutubeName = originalYoutubeName;
+            this.FoundSpotifyName = foundSpotifyName;
+        }
+    }
 
     public class Youtube2SpotifyController : Controller
     {
@@ -165,22 +178,16 @@ namespace Playlistic.Controllers
 
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
-                if (PlaylistItems.Count > 12)
-                {
-                    //this would take too long for AI to handle, use traditional method
-                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
-                }
-                else
-                {
-                    //throws the entire playlist at AI to go through and return a cleaned up search list
-                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAIAssistantSetupString, openAIAccessToken);
-                }
+                //throws the entire playlist at AI to go through and return a cleaned up search list
+                PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
                 string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
                 await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
                 PlaylistItems = await SearchForSongsOnSpotify(PlaylistItems);
+                List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
+                string jsonString = JsonConvert.SerializeObject(verificationObjects);
                 bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
                 if (success)
                 {
