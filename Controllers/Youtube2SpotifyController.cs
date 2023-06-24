@@ -292,6 +292,7 @@ namespace Playlistic.Controllers
                 }
 
                 PlaylistItem playlistItem = new PlaylistItem();
+                songName = songName.Replace("\"", "");
                 playlistItem.SpotifySearchObject.Song = songName;
                 playlistItem.OriginalYoutubeObject.VideoId = originalYoutubeVideoId;
                 playlistItem.OriginalYoutubeObject.ThumbnailURL = originalYoutubeThumbnailSmall;
