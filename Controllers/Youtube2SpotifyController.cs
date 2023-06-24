@@ -49,6 +49,7 @@ namespace Playlistic.Controllers
         private readonly string openAIAccessToken;
         private readonly string openAIAssistantSetupString;
         private readonly string googleAPIAccessToken;
+        
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
@@ -165,16 +166,26 @@ namespace Playlistic.Controllers
 
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
-                if (PlaylistItems.Count > 12)
+                int numIterations = PlaylistItems.Count / 10;
+                List<PlaylistItem> Results = new System.Collections.Generic.List<PlaylistItem>();
+                // break input list into sublist of max 10 items
+                for (int i = 0; i < numIterations; i++)
                 {
-                    //this would take too long for AI to handle, use traditional method
-                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems(PlaylistItems);
+                    var Sublist = PlaylistItems.Take(new Range(i * 10, i * 10 + 10));
+                    var SubPlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(Sublist.ToList(), openAIAssistantSetupString, openAIAccessToken);
+                    Results.AddRange(SubPlaylistItems);
                 }
-                else
-                {
-                    //throws the entire playlist at AI to go through and return a cleaned up search list
-                    PlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(PlaylistItems, openAIAssistantSetupString, openAIAccessToken);
-                }
+
+                PlaylistItems = Results;
+
+
+
+
+                // break input list into sublist of max 10 items
+                // process each ublist with chatgpt
+                // merge the output of the sublist and output the list
+
+
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
