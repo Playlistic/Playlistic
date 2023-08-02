@@ -192,22 +192,22 @@ namespace Playlistic.Controllers
                 PlaylistItems = Results;
 
 
-
-
                 // break input list into sublist of max 10 items
-                // process each ublist with chatgpt
+                // process each sublist with chatgpt
                 // merge the output of the sublist and output the list
-
-
 
                 // add total number of song names
                 // okay, we got the title, time to look it up on Spotify
                 string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
+
                 await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
+
                 PlaylistItems = await SearchForSongsOnSpotify(PlaylistItems);
                 List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
                 string jsonString = JsonConvert.SerializeObject(verificationObjects);
+
                 bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
+
                 if (success)
                 {
                     resultModel.PlaylistItems = PlaylistItems;
