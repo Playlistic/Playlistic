@@ -20,10 +20,10 @@ namespace Playlistic
                 .ConfigureAppConfiguration((context, config) => {
                     var builtConfiguration = config.Build();
 
-                    string kvURL = builtConfiguration["KeyVaultConfig:KVURL"];
-                    string tenantId = builtConfiguration["KeyVaultConfig:TenantId"];
-                    string clientId = builtConfiguration["KeyVaultConfig:ClientId"];
-                    string clientSecret = builtConfiguration["KeyVaultConfig:ClientSecret"];
+                    string kvURL = builtConfiguration["KVURL"];
+                    string tenantId = builtConfiguration["TenantId"];
+                    string clientId = builtConfiguration["ClientId"];
+                    string clientSecret = builtConfiguration["ClientSecret"];
 
                     var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
                     var client = new SecretClient(new Uri(kvURL), credential);
