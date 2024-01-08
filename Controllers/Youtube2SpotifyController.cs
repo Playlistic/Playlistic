@@ -19,12 +19,6 @@ using System.Web;
 using Playlistic.Helpers;
 using Playlistic.Models;
 using Microsoft.AspNetCore.Hosting;
-using Google.Apis.Services;
-using Google.Apis.YouTube.v3;
-using Google.Apis.Util;
-using static Google.Apis.YouTube.v3.PlaylistsResource;
-using Google.Apis.YouTube.v3.Data;
-using Swan.Formatters;
 
 namespace Playlistic.Controllers
 {
@@ -42,9 +36,9 @@ namespace Playlistic.Controllers
 
         public VerificationObject(int index, string originalYoutubeName, string foundSpotifyName)
         {
-            this.Index = index;
-            this.OriginalYoutubeName = originalYoutubeName;
-            this.FoundSpotifyName = foundSpotifyName;
+            Index = index;
+            OriginalYoutubeName = originalYoutubeName;
+            FoundSpotifyName = foundSpotifyName;
         }
     }
 
@@ -58,15 +52,14 @@ namespace Playlistic.Controllers
             _configuration = configuration;
             openAIAccessToken = configuration["OpenAIKey"];
             openAIAssistantSetupString = configuration["OpenAIPrompt"];
-            googleAPIAccessToken = configuration["YoutubeAPIKey"];
         }
 
         private string YoutubePlaylistID { get; set; }
         private YoutubePlaylistMetadata youtubePlaylistMetadata;
         private SpotifyClient spotify;
+        private dynamic InitialData;
         private readonly string openAIAccessToken;
         private readonly string openAIAssistantSetupString;
-        private readonly string googleAPIAccessToken;
 
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
@@ -116,7 +109,7 @@ namespace Playlistic.Controllers
             return PartialView("~/Views/Home/Index.cshtml", home);
         }
 
-        private static JArray YoutubePlaylistItemsFromHTML(string playlistId)
+        private static dynamic GetYoutubePlaylistDataFromHTML(string playlistId)
         {
             // youtube... in their infinite wisdom...
             // decided to not include certain songs within their playlist (basically videos provided by youtube music with "- topic"
@@ -140,12 +133,19 @@ namespace Playlistic.Controllers
             List<IElement> listOfScript = document.Body.GetElementsByTagName("script").ToList();
             IElement element = listOfScript.First(x => x.TextContent.Contains("initialData.push"));
             string ytInitialData = element.InnerHtml;
+
             // people put all kinds of characters in metadata, gross
             ytInitialData = Regex.Unescape(ytInitialData);
             ytInitialData = HttpUtility.HtmlDecode(ytInitialData);
             string rawPlaylistData = ytInitialData.Split("data: '").Last();
             rawPlaylistData = rawPlaylistData.Replace("'});ytcfg.set({'YTMUSIC_INITIAL_DATA': initialData});} catch (e) {}", "");
-            dynamic initialData = JsonConvert.DeserializeObject(rawPlaylistData);
+
+            dynamic initialData = JsonConvert.DeserializeObject(rawPlaylistData);           
+            return initialData;
+        }
+
+        private static JArray GetPlaylistItem(dynamic initialData)
+        {
             JArray playlist = initialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents;
             return playlist;
         }
@@ -158,11 +158,14 @@ namespace Playlistic.Controllers
         public async Task<ResultModel> ConvertYoutubePlaylist2SpotifyPlaylist(string youtubePlaylistId)
         {
             ResultModel resultModel = new();
-            List<Playlistic_PlaylistItem> PlaylistItems = new();
+            List<Playlistic_PlaylistItem> PlaylistItems = new();           
 
+            //youtube data api have now comletely failed for any playlist other than user created playlist
+            //this is not acceptable, now getting metadata directly through youtube music
             try
             {
-                youtubePlaylistMetadata = await GenerateYoutubePlaylistMetadata(youtubePlaylistId);
+                //collect playlist data(including metadata and playlist items) from youtube music 
+                InitialData = GetYoutubePlaylistDataFromHTML(youtubePlaylistId);
             }
             catch (Exception ex)
             {
@@ -172,10 +175,12 @@ namespace Playlistic.Controllers
 
             try
             {
+                youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(InitialData);
+
                 List<string> songNames = new();
 
-                //collect the list of videos from Json
-                JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
+                JArray playlist = GetPlaylistItem(InitialData);
+
                 if (playlist == null)
                 {
                     //empty playlist, halt further processing
@@ -248,28 +253,15 @@ namespace Playlistic.Controllers
             return PartialView("~/Views/Result/Index.cshtml", JsonConvert.DeserializeObject<ResultModel>(System.IO.File.ReadAllText($"{_hostingEnvironment.WebRootPath}\\SampleData.json")));
         }
 
-        public async Task<YoutubePlaylistMetadata> GenerateYoutubePlaylistMetadata(string playlistId)
+        public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(dynamic playlistData)
         {
-            var youtubeService = new YouTubeService(new BaseClientService.Initializer()
-            {
-                ApiKey = googleAPIAccessToken,
-                ApplicationName = this.GetType().ToString()
-            });
-
-            List<string> part = new() { "id", "snippet" };
-            Repeatable<string> properties = new(part);
-
-            ListRequest searchListRequest = youtubeService.Playlists.List(properties);
-            searchListRequest.Fields = "items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
-            searchListRequest.Id = playlistId;
-            PlaylistListResponse playListResponse = await searchListRequest.ExecuteAsync();
-
-            string title = playListResponse.Items[0].Snippet.Title;
-            string description = playListResponse.Items[0].Snippet.Description;
-            string coverArt = playListResponse.Items[0].Snippet.Thumbnails.Medium.Url;
+            string title = playlistData.header.musicDetailHeaderRenderer.title.runs[0].text;
+            string description = playlistData.header.musicDetailHeaderRenderer.description.runs[0].text;
+            string coverArt = playlistData.header.musicDetailHeaderRenderer.thumbnail.croppedSquareThumbnailRenderer.thumbnail.thumbnails[1].url;
 
             string base64ImageString = string.Empty;
 
+            //spotify have a title and description limit of 200 characters, capping that
             if (title.Length > 200)
             {
                 title = title[..200];
@@ -279,6 +271,7 @@ namespace Playlistic.Controllers
             {
                 description = description[..200];
             }
+
             try
             {
                 using Stream stream = GetStreamFromUrl(coverArt);
