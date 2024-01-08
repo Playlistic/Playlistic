@@ -1,10 +1,6 @@
-﻿using Newtonsoft.Json;
-using SpotifyAPI.Web;
+﻿using SpotifyAPI.Web;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using Playlistic.Models;
 
 namespace Playlistic.Helpers
 {

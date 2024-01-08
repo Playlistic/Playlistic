@@ -1,5 +1,3 @@
-using System;
-
 namespace Playlistic.Models
 {
     public class ErrorViewModel

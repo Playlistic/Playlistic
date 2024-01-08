@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Playlistic.Models;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Hosting;
 using System.Web;
 using Playlistic.Helpers;
 using Microsoft.Extensions.Configuration;
