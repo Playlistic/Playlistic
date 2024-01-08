@@ -36,7 +36,7 @@ namespace Playlistic.Helpers
             request.AutomaticDecompression = DecompressionMethods.GZip;
             using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new StreamReader(stream))
+            using (StreamReader reader = new(stream))
             {
                 html = reader.ReadToEnd();
             }
@@ -47,7 +47,7 @@ namespace Playlistic.Helpers
 
         public static List<SpotifySearchObject> MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
         {
-            List<SpotifySearchObject> spotifySearchObjects = new List<SpotifySearchObject>();
+            List<SpotifySearchObject> spotifySearchObjects = new();
 
             string AISystemPostRequestBody = $"{{" +
                                                     $"\"model\": \"gpt-3.5-turbo-16k-0613\"," +
@@ -70,16 +70,14 @@ namespace Playlistic.Helpers
             HttpWebResponse systemSetupResponse = MakePostRequest("https://api.openai.com/v1/chat/completions", AISystemPostRequestBody, OpenAIAccessToken);
             if (systemSetupResponse.StatusCode == HttpStatusCode.OK)
             {
-                using (Stream stream = systemSetupResponse.GetResponseStream())
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    string AIPlaylistGenerationResponse = reader.ReadToEnd();
+                using Stream stream = systemSetupResponse.GetResponseStream();
+                using StreamReader reader = new(stream);
+                string AIPlaylistGenerationResponse = reader.ReadToEnd();
 
-                    OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
-                    string rawResult = openAIResult.choices[0].message.content;
-                    JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
-                    spotifySearchObjects = jsonAIResult.spotifySearchObjects;
-                }
+                OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
+                string rawResult = openAIResult.choices[0].message.content;
+                JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
+                spotifySearchObjects = jsonAIResult.spotifySearchObjects;
             }
             return spotifySearchObjects;
         }

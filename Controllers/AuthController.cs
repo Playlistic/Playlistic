@@ -83,7 +83,7 @@ namespace Playlistic.Controllers
 
                 using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
                 using (Stream stream = response.GetResponseStream())
-                using (StreamReader reader = new StreamReader(stream))
+                using (StreamReader reader = new(stream))
                 {
                     html = reader.ReadToEnd();
                 }

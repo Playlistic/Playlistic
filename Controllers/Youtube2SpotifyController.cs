@@ -65,8 +65,8 @@ namespace Playlistic.Controllers
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
-            ResultModel resultModel = new ResultModel();
-            HomeModel homeModel = new HomeModel(false);
+            ResultModel resultModel = new();
+            HomeModel homeModel = new(false);
             string access_Token = HttpContext.Session.GetString("access_token");
             try
             {
@@ -110,7 +110,7 @@ namespace Playlistic.Controllers
             return PartialView("~/Views/Home/Index.cshtml", home);
         }
 
-        private JArray YoutubePlaylistItemsFromHTML(string playlistId)
+        private static JArray YoutubePlaylistItemsFromHTML(string playlistId)
         {
             // youtube... in their infinite wisdom...
             // decided to not include certain songs within their playlist (basically videos provided by youtube music with "- topic"
@@ -119,17 +119,17 @@ namespace Playlistic.Controllers
             // grab the playlist from music.youtube.com 
 
             string html;
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create($"https://music.youtube.com/playlist?list={playlistId}");
+            HttpWebRequest request = WebRequest.Create($"https://music.youtube.com/playlist?list={playlistId}") as HttpWebRequest;
             request.AutomaticDecompression = DecompressionMethods.GZip;
             request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36 Edg/102.0.1245.33";
             using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
             using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new StreamReader(stream))
+            using (StreamReader reader = new(stream))
             {
                 html = reader.ReadToEnd();
             }
 
-            HtmlParser parser = new HtmlParser();
+            HtmlParser parser = new();
             IHtmlDocument document = parser.ParseDocument(html);
             List<IElement> listOfScript = document.Body.GetElementsByTagName("script").ToList();
             IElement element = listOfScript.First(x => x.TextContent.Contains("initialData.push"));
@@ -151,8 +151,8 @@ namespace Playlistic.Controllers
         /// <returns></returns>
         public async Task<ResultModel> ConvertYoutubePlaylist2SpotifyPlaylist(string youtubePlaylistId)
         {
-            ResultModel resultModel = new ResultModel();
-            List<PlaylistItem> PlaylistItems = new List<PlaylistItem>();
+            ResultModel resultModel = new();
+            List<PlaylistItem> PlaylistItems = new();
 
             try
             {
@@ -166,7 +166,7 @@ namespace Playlistic.Controllers
 
             try
             {
-                List<string> songNames = new List<string>();
+                List<string> songNames = new();
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
@@ -179,7 +179,7 @@ namespace Playlistic.Controllers
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
                 int numIterations = PlaylistItems.Count / 10;
-                List<PlaylistItem> Results = new System.Collections.Generic.List<PlaylistItem>();
+                List<PlaylistItem> Results = new();
                 // break input list into sublist of max 10 items
                 for (int i = 0; i < numIterations; i++)
                 {
@@ -249,24 +249,20 @@ namespace Playlistic.Controllers
 
             if (title.Length > 200)
             {
-                title = title.Substring(0, 200);
+                title = title[..200];
             }
 
             if (description.Length > 200)
             {
-                description = description.Substring(0, 200);
+                description = description[..200];
             }
             try
             {
-                using (Stream stream = GetStreamFromUrl(coverArt))
-                {
-                    using (var ms = new MemoryStream())
-                    {
-                        stream.CopyTo(ms);
-                        byte[] fileBytes = ms.ToArray();
-                        base64ImageString = Convert.ToBase64String(fileBytes);
-                    }
-                }
+                using Stream stream = GetStreamFromUrl(coverArt);
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                byte[] fileBytes = ms.ToArray();
+                base64ImageString = Convert.ToBase64String(fileBytes);
             }
             catch
             {
@@ -281,9 +277,9 @@ namespace Playlistic.Controllers
             };
         }
 
-        private List<PlaylistItem> GetPreliminaryPlaylistItems(JArray incomingRawYoutubeMusicPlaylistData)
+        private static List<PlaylistItem> GetPreliminaryPlaylistItems(JArray incomingRawYoutubeMusicPlaylistData)
         {
-            List<PlaylistItem> OriginalYoutubeData = new List<PlaylistItem>();
+            List<PlaylistItem> OriginalYoutubeData = new();
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
@@ -304,9 +300,6 @@ namespace Playlistic.Controllers
                     // The match object
                     Match match = Regex.Match(musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.thumbnail.musicThumbnailRenderer.thumbnail.thumbnails[0].url.Value, pattern);
 
-                    // The video id
-                    string videoId = "";
-
                     // If a match is found, extract the video id
                     if (match.Success)
                     {
@@ -316,7 +309,7 @@ namespace Playlistic.Controllers
 
                 }
 
-                PlaylistItem playlistItem = new PlaylistItem();
+                PlaylistItem playlistItem = new();
                 songName = songName.Replace("\"", "");
                 playlistItem.SpotifySearchObject.Song = songName;
                 playlistItem.OriginalYoutubeObject.VideoId = originalYoutubeVideoId;
@@ -338,7 +331,7 @@ namespace Playlistic.Controllers
             //create a playlist using the currently authenticated profile
             string user_Id = HttpContext.Session.GetString("user_Id");
 
-            PlaylistCreateRequest playlistCreateRequest = new PlaylistCreateRequest(youtubePlaylistMetadata.title);
+            PlaylistCreateRequest playlistCreateRequest = new(youtubePlaylistMetadata.title);
             playlistCreateRequest.Description = youtubePlaylistMetadata.description;
 
             FullPlaylist fullPlaylist = await spotify.Playlists.Create(user_Id, playlistCreateRequest);
@@ -369,7 +362,7 @@ namespace Playlistic.Controllers
         {
             foreach (PlaylistItem playlistItem in playlistItems)
             {
-                SearchRequest searchRequest = new SearchRequest(SearchRequest.Types.Track, FormatSpotifySearchString(playlistItem));
+                SearchRequest searchRequest = new(SearchRequest.Types.Track, FormatSpotifySearchString(playlistItem));
                 searchRequest.Limit = 1;
 
                 SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
@@ -387,7 +380,7 @@ namespace Playlistic.Controllers
         }
         public bool AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd)
         {
-            List<string> trackURI = new List<string>();
+            List<string> trackURI = new();
 
             foreach (FullTrack fullTrack in tracksToAdd)
             {
@@ -434,7 +427,7 @@ namespace Playlistic.Controllers
 
         private string FormatSpotifySearchString(PlaylistItem playlistItem)
         {
-            StringBuilder queryBuilder = new StringBuilder();
+            StringBuilder queryBuilder = new();
 
             queryBuilder.Append(string.Join(" ", playlistItem.SpotifySearchObject.Artists));
             queryBuilder.Append($" {playlistItem.SpotifySearchObject.Song}");
