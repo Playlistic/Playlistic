@@ -11,7 +11,7 @@
         if (@Model.FaultCode == FaultCode.Unspported)
         {
             <h1>Failed to generate playlist</h1>
-            <p>Could not scrape the youtube playlist, check the Id you pasted is complete.<br /> Currently Youtube generated "Mix" playlist are also not supported</p>
+            <p>Could not scrape the youtube playlist, check the Id you pasted is complete.<br /> Currently Youtube generated "Mix" playlist are not supported</p>
         }
         else if (@Model.FaultCode == FaultCode.ConversionFailed)
         {
@@ -24,6 +24,13 @@
         {
             <h1>Um, your playlist is empty</h1>
             <p>You goof, XD</p>
+        }
+        else if (Model.FaultCode == FaultCode.EmptySearchResult)
+        {
+            <h1>Couldn't find any matching track on Spotify</h1>
+            <p>Try including original songs, not remixes, Spotify have a poor collection of remixes.</p>
+            <p>Also don't use many-song-packed-in-hour-long-video "Playlists". I can't sperate the songs in that.'</p>
+            <p>Or maybe you're just fooling around with a playlist with non music related videos</p>
         }
     }
 

@@ -6,7 +6,7 @@ namespace Playlistic.Models
 {
     public class ResultModel
     {
-        public List<PlaylistItem> PlaylistItems;
+        public List<Playlistic_PlaylistItem> PlaylistItems;
         public string SpotifyLink;
         public string YoutubeLink;
         public int OriginalYoutubeVideoCount => PlaylistItems.Count;
@@ -15,7 +15,7 @@ namespace Playlistic.Models
         public FaultCode FaultCode;
         public ResultModel()
         {
-            PlaylistItems = new List<PlaylistItem>();
+            PlaylistItems = new List<Playlistic_PlaylistItem>();
             SpotifyLink = string.Empty;
             YoutubeLink = string.Empty;
             FaultTriggered = false;
@@ -23,7 +23,7 @@ namespace Playlistic.Models
 
         public ResultModel(FaultCode faultCode, string YoutubePlaylistURL)
         {
-            PlaylistItems = new List<PlaylistItem>();
+            PlaylistItems = new List<Playlistic_PlaylistItem>();
             SpotifyLink = string.Empty;
             YoutubeLink = YoutubePlaylistURL;
             FaultTriggered = true;
@@ -34,6 +34,7 @@ namespace Playlistic.Models
     {
         Unspported,
         ConversionFailed,
-        EmptyPlaylist
+        EmptyPlaylist,
+        EmptySearchResult
     }
 }

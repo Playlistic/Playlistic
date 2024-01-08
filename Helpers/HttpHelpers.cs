@@ -28,23 +28,6 @@ namespace Playlistic.Helpers
             return (HttpWebResponse)request.GetResponse();
         }
 
-        public static object MakeYoutubeGetCalls(string url)
-        {
-            string html = string.Empty;
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            request.AutomaticDecompression = DecompressionMethods.GZip;
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new(stream))
-            {
-                html = reader.ReadToEnd();
-            }
-            // you better know what this is beforehand
-            dynamic json = JsonConvert.DeserializeObject(html);
-            return json;
-        }
-
         public static List<SpotifySearchObject> MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
         {
             List<SpotifySearchObject> spotifySearchObjects = new();

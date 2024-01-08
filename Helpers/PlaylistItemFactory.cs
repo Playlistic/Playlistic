@@ -1,64 +1,10 @@
-﻿using SpotifyAPI.Web;
+﻿using Playlistic.Models;
+using SpotifyAPI.Web;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Playlistic.Helpers
-{
-    public class PlaylistItem
-    {
-        public SpotifySearchObject SpotifySearchObject { get; set; }
-        public OriginalYoutubeObject OriginalYoutubeObject { get; set; }
-        public FullTrack? FoundSpotifyTrack { get; set; }
-        public string SpotifyArtists => FoundSpotifyTrack != null ? string.Join(", ", FoundSpotifyTrack.Artists.Select(y => y.Name).ToList()) : string.Empty;
-        public string YoutubeArtists => OriginalYoutubeObject.VideoChannelTitle;
-        public PlaylistItem()
-        {
-            OriginalYoutubeObject = new OriginalYoutubeObject();
-            SpotifySearchObject = new SpotifySearchObject();
-        }
-    }
-    public class OriginalYoutubeObject
-    {
-        public string VideoTitle
-        {
-            get; set;
-        }
-        public string VideoChannelTitle
-        {
-            get; set;
-        }
-        public string VideoId
-        {
-            get; set;
-        }
-        public string ThumbnailURL
-        {
-            get; set;
-        }
-        public OriginalYoutubeObject()
-        {
-            VideoTitle = string.Empty;
-            VideoChannelTitle = string.Empty;
-            VideoId = string.Empty;
-            ThumbnailURL = string.Empty;
-        }
-    }
-    public class SpotifySearchObject
-    {
-        public string Song { get; set; }
-        public List<string> Artists { get; set; }
-        public List<string> Producers { get; set; }
-        public List<string> Featured_Artists { get; set; }
-
-        public SpotifySearchObject()
-        {
-            Song = string.Empty;
-            Artists = new List<string>();
-            Producers = new List<string>();
-            Featured_Artists = new List<string>();
-        }
-    }
-
+{   
     public static class PlaylistItemFactory
     {
         /// <summary>
@@ -67,9 +13,9 @@ namespace Playlistic.Helpers
         /// <param name="song">original title from youtube video, we will need to massage it a bit</param>
         /// <param name="artist">original channel title, we will need to massage it a bit, might or might not need it during actual search since many music MV include artist name in the title</param>
         /// <returns></returns>
-        public static List<PlaylistItem> CleanUpPlaylistItems(List<PlaylistItem> rawPlaylistItems)
+        public static List<Playlistic_PlaylistItem> CleanUpPlaylistItems(List<Playlistic_PlaylistItem> rawPlaylistItems)
         {
-            foreach (PlaylistItem rawPlaylistItem in rawPlaylistItems)
+            foreach (Playlistic_PlaylistItem rawPlaylistItem in rawPlaylistItems)
             {
                 bool ignorebrackets = false;
                 rawPlaylistItem.SpotifySearchObject.Song = rawPlaylistItem.SpotifySearchObject.Song.ToLower();
@@ -125,7 +71,7 @@ namespace Playlistic.Helpers
             return rawPlaylistItems;
         }
 
-        public static List<PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<PlaylistItem> rawPlaylistItems, string OpenAIAssistantSetupString, string openAIAccessToken)
+        public static List<Playlistic_PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<Playlistic_PlaylistItem> rawPlaylistItems, string OpenAIAssistantSetupString, string openAIAccessToken)
         {
 
             string OpenAIReadyInputListString = "[" + string.Join(",", rawPlaylistItems.Select(x =>

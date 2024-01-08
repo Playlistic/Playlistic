@@ -19,6 +19,12 @@ using System.Web;
 using Playlistic.Helpers;
 using Playlistic.Models;
 using Microsoft.AspNetCore.Hosting;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+using Google.Apis.Util;
+using static Google.Apis.YouTube.v3.PlaylistsResource;
+using Google.Apis.YouTube.v3.Data;
+using Swan.Formatters;
 
 namespace Playlistic.Controllers
 {
@@ -61,7 +67,7 @@ namespace Playlistic.Controllers
         private readonly string openAIAccessToken;
         private readonly string openAIAssistantSetupString;
         private readonly string googleAPIAccessToken;
-        
+
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
         {
@@ -152,13 +158,13 @@ namespace Playlistic.Controllers
         public async Task<ResultModel> ConvertYoutubePlaylist2SpotifyPlaylist(string youtubePlaylistId)
         {
             ResultModel resultModel = new();
-            List<PlaylistItem> PlaylistItems = new();
+            List<Playlistic_PlaylistItem> PlaylistItems = new();
 
             try
             {
-                youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(youtubePlaylistId);
+                youtubePlaylistMetadata = await GenerateYoutubePlaylistMetadata(youtubePlaylistId);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 //something is weird with the youtubePlaylistId
                 return new ResultModel(FaultCode.Unspported, $"https://youtube.com/playlist?list={youtubePlaylistId}");
@@ -170,7 +176,7 @@ namespace Playlistic.Controllers
 
                 //collect the list of videos from Json
                 JArray playlist = YoutubePlaylistItemsFromHTML(youtubePlaylistId);
-                if(playlist == null)
+                if (playlist == null)
                 {
                     //empty playlist, halt further processing
                     return new ResultModel(FaultCode.EmptyPlaylist, $"https://youtube.com/playlist?list={youtubePlaylistId}");
@@ -179,7 +185,7 @@ namespace Playlistic.Controllers
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
                 int numIterations = PlaylistItems.Count / 10;
-                List<PlaylistItem> Results = new();
+                List<Playlistic_PlaylistItem> Results = new();
                 // break input list into sublist of max 10 items
                 for (int i = 0; i < numIterations; i++)
                 {
@@ -189,34 +195,40 @@ namespace Playlistic.Controllers
                 }
 
                 PlaylistItems = Results;
-
-
-                // break input list into sublist of max 10 items
-                // process each sublist with chatgpt
-                // merge the output of the sublist and output the list
-
-                // add total number of song names
-                // okay, we got the title, time to look it up on Spotify
-                string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
-
-                await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
-
                 PlaylistItems = await SearchForSongsOnSpotify(PlaylistItems);
-                List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
-                string jsonString = JsonConvert.SerializeObject(verificationObjects);
 
-                bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
-
-                if (success)
+                if (PlaylistItems.Any(x => { return x.FoundSpotifyTrack != null; }))
                 {
-                    resultModel.PlaylistItems = PlaylistItems;
-                    resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
-                    resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
-                    string resultModelString = JsonConvert.SerializeObject(resultModel);
-                    return resultModel;
-                }
-                throw new Exception("Failed to add tracks to spotify");
+                    // break input list into sublist of max 10 items
+                    // process each sublist with chatgpt
+                    // merge the output of the sublist and output the list
 
+                    // add total number of song names
+                    // okay, we got the title, time to look it up on Spotify
+                    string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata);
+
+                    await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
+
+
+                    List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
+                    string jsonString = JsonConvert.SerializeObject(verificationObjects);
+
+                    bool success = AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
+
+                    if (success)
+                    {
+                        resultModel.PlaylistItems = PlaylistItems;
+                        resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+                        resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
+                        string resultModelString = JsonConvert.SerializeObject(resultModel);
+                        return resultModel;
+                    }
+                    throw new Exception("Failed to add tracks to spotify");
+                }
+                else
+                {
+                    return new ResultModel(FaultCode.EmptySearchResult, $"https://youtube.com/playlist?list={youtubePlaylistId}");
+                }
             }
             catch (Exception exception)
             {
@@ -236,14 +248,25 @@ namespace Playlistic.Controllers
             return PartialView("~/Views/Result/Index.cshtml", JsonConvert.DeserializeObject<ResultModel>(System.IO.File.ReadAllText($"{_hostingEnvironment.WebRootPath}\\SampleData.json")));
         }
 
-        public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(string playlistId)
+        public async Task<YoutubePlaylistMetadata> GenerateYoutubePlaylistMetadata(string playlistId)
         {
-            string url = $"https://www.googleapis.com/youtube/v3/playlists?id={playlistId}&key={googleAPIAccessToken}&part=id,snippet&fields=items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
-            dynamic json = HttpHelpers.MakeYoutubeGetCalls(url);
+            var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+            {
+                ApiKey = googleAPIAccessToken,
+                ApplicationName = this.GetType().ToString()
+            });
 
-            string title = json.items[0].snippet.title;
-            string description = json.items[0].snippet.description;
-            string coverArt = json.items[0].snippet.thumbnails.medium.url;
+            List<string> part = new() { "id", "snippet" };
+            Repeatable<string> properties = new(part);
+
+            ListRequest searchListRequest = youtubeService.Playlists.List(properties);
+            searchListRequest.Fields = "items(id,snippet(title,channelId,channelTitle,description,thumbnails))";
+            searchListRequest.Id = playlistId;
+            PlaylistListResponse playListResponse = await searchListRequest.ExecuteAsync();
+
+            string title = playListResponse.Items[0].Snippet.Title;
+            string description = playListResponse.Items[0].Snippet.Description;
+            string coverArt = playListResponse.Items[0].Snippet.Thumbnails.Medium.Url;
 
             string base64ImageString = string.Empty;
 
@@ -267,7 +290,7 @@ namespace Playlistic.Controllers
             catch
             {
                 base64ImageString = string.Empty;
-            }         
+            }
 
             return new YoutubePlaylistMetadata()
             {
@@ -277,9 +300,9 @@ namespace Playlistic.Controllers
             };
         }
 
-        private static List<PlaylistItem> GetPreliminaryPlaylistItems(JArray incomingRawYoutubeMusicPlaylistData)
+        private static List<Playlistic_PlaylistItem> GetPreliminaryPlaylistItems(JArray incomingRawYoutubeMusicPlaylistData)
         {
-            List<PlaylistItem> OriginalYoutubeData = new();
+            List<Playlistic_PlaylistItem> OriginalYoutubeData = new();
             foreach (dynamic musicResponsiveListItemRenderer in incomingRawYoutubeMusicPlaylistData)
             {
                 string songName = musicResponsiveListItemRenderer.musicResponsiveListItemRenderer.flexColumns[0].musicResponsiveListItemFlexColumnRenderer.text.runs[0].text.Value.ToString();
@@ -309,7 +332,7 @@ namespace Playlistic.Controllers
 
                 }
 
-                PlaylistItem playlistItem = new();
+                Playlistic_PlaylistItem playlistItem = new();
                 songName = songName.Replace("\"", "");
                 playlistItem.SpotifySearchObject.Song = songName;
                 playlistItem.OriginalYoutubeObject.VideoId = originalYoutubeVideoId;
@@ -331,8 +354,10 @@ namespace Playlistic.Controllers
             //create a playlist using the currently authenticated profile
             string user_Id = HttpContext.Session.GetString("user_Id");
 
-            PlaylistCreateRequest playlistCreateRequest = new(youtubePlaylistMetadata.title);
-            playlistCreateRequest.Description = youtubePlaylistMetadata.description;
+            PlaylistCreateRequest playlistCreateRequest = new(youtubePlaylistMetadata.title)
+            {
+                Description = youtubePlaylistMetadata.description
+            };
 
             FullPlaylist fullPlaylist = await spotify.Playlists.Create(user_Id, playlistCreateRequest);
             return fullPlaylist.Id;
@@ -358,12 +383,14 @@ namespace Playlistic.Controllers
         /// </summary>
         /// <param name="playlistItems">incoming list of youtube videos</param>
         /// <returns></returns>
-        public async Task<List<PlaylistItem>> SearchForSongsOnSpotify(List<PlaylistItem> playlistItems)
+        public async Task<List<Playlistic_PlaylistItem>> SearchForSongsOnSpotify(List<Playlistic_PlaylistItem> playlistItems)
         {
-            foreach (PlaylistItem playlistItem in playlistItems)
+            foreach (Playlistic_PlaylistItem playlistItem in playlistItems)
             {
-                SearchRequest searchRequest = new(SearchRequest.Types.Track, FormatSpotifySearchString(playlistItem));
-                searchRequest.Limit = 1;
+                SearchRequest searchRequest = new(SearchRequest.Types.Track, FormatSpotifySearchString(playlistItem))
+                {
+                    Limit = 1
+                };
 
                 SearchResponse searchResponse = await spotify.Search.Item(searchRequest);
 
@@ -393,6 +420,7 @@ namespace Playlistic.Controllers
                 }
                 continue;
             }
+
             try
             {
                 HttpWebResponse httpWebResponse = AddTracksToPlaylist(spotifyPlaylistId, string.Join(",", trackURI));
@@ -401,11 +429,10 @@ namespace Playlistic.Controllers
                     return true;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 return false;
             }
-
 
             return false;
         }
@@ -425,7 +452,7 @@ namespace Playlistic.Controllers
             return $"{string.Join(", ", artists)} - {song}";
         }
 
-        private string FormatSpotifySearchString(PlaylistItem playlistItem)
+        private static string FormatSpotifySearchString(Playlistic_PlaylistItem playlistItem)
         {
             StringBuilder queryBuilder = new();
 
