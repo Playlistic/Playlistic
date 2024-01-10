@@ -22,8 +22,15 @@ namespace Playlistic.Services
     public class Youtube2SpotifyServices : IYoutube2SpotifyService
     {
         private SpotifyClient spotify;
-
+        private YoutubePlaylistMetadata youtubePlaylistMetadata;
         public SpotifyClient SpotifyClient { set { spotify = value; } }
+        private dynamic InitialData;
+        private string openAIAccessToken;
+        private string openAIAssistantSetupString;
+        private PrivateUser user;
+
+        public string OpenAIAccessToken { set { openAIAccessToken = value; } }
+        public string OpenAIAssistantSetupString { set { openAIAssistantSetupString = value; } }
 
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(dynamic playlistData)
         {
@@ -110,7 +117,7 @@ namespace Playlistic.Services
             return new MemoryStream(imageData);
         }
 
-        public bool AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd, string accessToken)
+        public async Task<bool> AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd)
         {
             List<string> trackURI = new();
 
@@ -121,15 +128,17 @@ namespace Playlistic.Services
                     List<SimpleArtist> artists = fullTrack.Artists;
                     List<string> artistNames = artists.Select(x => x.Name).ToList();
                     string songName = fullTrack.Name.ToString();
-                    trackURI.Add($"\"{fullTrack.Uri}\"");
+                    trackURI.Add(fullTrack.Uri);
                 }
                 continue;
             }
 
             try
             {
-                HttpWebResponse httpWebResponse = AddTracksToPlaylist(spotifyPlaylistId, string.Join(",", trackURI), accessToken);
-                if (httpWebResponse.StatusCode == HttpStatusCode.Created)
+                PlaylistAddItemsRequest playlistAddItemsRequest = new(trackURI);              
+
+                SnapshotResponse snapShotResponse = await spotify.Playlists.AddItems(spotifyPlaylistId, playlistAddItemsRequest);
+                if (snapShotResponse.SnapshotId != null)
                 {
                     return true;
                 }
@@ -140,17 +149,6 @@ namespace Playlistic.Services
             }
 
             return false;
-        }
-
-        private static HttpWebResponse AddTracksToPlaylist(string newSpotifyPlaylistID, string tracksToAdd, string accessToken)
-        {
-            string url = $"https://api.spotify.com/v1/playlists/{newSpotifyPlaylistID}/tracks";
-
-            string postData = "{";
-            postData += "\"uris\": " + $"[{tracksToAdd}]";
-            postData += "}";
-
-            return HttpHelpers.MakePostRequest(url, postData, accessToken);
         }
 
         /// <summary>
@@ -268,10 +266,106 @@ namespace Playlistic.Services
             return OriginalYoutubeData;
         }
 
-        public async Task<string> GetUserIdLive()
+        /// <summary>
+        /// get title and artist name from youtube
+        /// </summary>
+        /// <param name="youtubePlaylistId"></param>
+        /// <returns></returns>
+        public async Task<ResultModel> ConvertYoutubePlaylist2SpotifyPlaylist(string youtubePlaylistId)
         {
-            PrivateUser privateUser = await spotify.UserProfile.Current();
-            return privateUser.Id;
+            ResultModel resultModel = new();
+            List<Playlistic_PlaylistItem> PlaylistItems = new();
+            user = await spotify.UserProfile.Current();
+
+
+            //youtube data api have now comletely failed for any playlist other than user created playlist
+            //this is not acceptable, now getting metadata directly through youtube music
+            try
+            {
+                //collect playlist data(including metadata and playlist items) from youtube music 
+                InitialData = GetYoutubePlaylistDataFromHTML(youtubePlaylistId);
+            }
+            catch (Exception ex)
+            {
+                //something is weird with the youtubePlaylistId
+                return new ResultModel(FaultCode.Unspported, $"https://youtube.com/playlist?list={youtubePlaylistId}");
+            }
+
+            try
+            {
+                youtubePlaylistMetadata = GenerateYoutubePlaylistMetadata(InitialData);
+
+                List<string> songNames = new();
+
+                JArray playlist = GetPlaylistItem(InitialData);
+
+                if (playlist == null)
+                {
+                    //empty playlist, halt further processing
+                    return new ResultModel(FaultCode.EmptyPlaylist, $"https://youtube.com/playlist?list={youtubePlaylistId}");
+                }
+
+                PlaylistItems = GetPreliminaryPlaylistItems(playlist);
+
+                int numIterations = PlaylistItems.Count / 10;
+                List<Playlistic_PlaylistItem> Results = new();
+                // break input list into sublist of max 10 items
+                for (int i = 0; i < numIterations; i++)
+                {
+                    var Sublist = PlaylistItems.Take(new Range(i * 10, i * 10 + 10));
+                    var SubPlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(Sublist.ToList(), openAIAssistantSetupString, openAIAccessToken);
+                    Results.AddRange(SubPlaylistItems);
+                }
+
+                PlaylistItems = Results;
+                PlaylistItems = await SearchForSongsOnSpotify(PlaylistItems);
+
+                if (PlaylistItems.Any(x => { return x.FoundSpotifyTrack != null; }))
+                {
+                    // break input list into sublist of max 10 items
+                    // process each sublist with chatgpt
+                    // merge the output of the sublist and output the list
+
+                    // add total number of song names
+                    // okay, we got the title, time to look it up on Spotify
+                    string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata, user.Id);
+
+                    await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
+
+
+                    List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
+                    string jsonString = JsonConvert.SerializeObject(verificationObjects);
+
+
+                    bool success = await AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
+
+
+                    if (success)
+                    {
+                        resultModel.PlaylistItems = PlaylistItems;
+                        resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+                        resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
+                        string resultModelString = JsonConvert.SerializeObject(resultModel);
+                        return resultModel;
+                    }
+                    throw new Exception("Failed to add tracks to spotify");
+                }
+                else
+                {
+                    return new ResultModel(FaultCode.EmptySearchResult, $"https://youtube.com/playlist?list={youtubePlaylistId}");
+                }
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                Console.WriteLine(exception.StackTrace);
+                return new ResultModel(FaultCode.ConversionFailed, $"https://youtube.com/playlist?list={youtubePlaylistId}");
+            }
+        }
+        private static JArray GetPlaylistItem(dynamic initialData)
+        {
+            JArray playlist = initialData.contents.singleColumnBrowseResultsRenderer.tabs[0].tabRenderer.content.sectionListRenderer.contents[0].musicPlaylistShelfRenderer.contents;
+            return playlist;
         }
     }
 }
