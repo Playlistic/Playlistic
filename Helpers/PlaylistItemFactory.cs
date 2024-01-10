@@ -1,10 +1,9 @@
 ﻿using Playlistic.Models;
-using SpotifyAPI.Web;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Playlistic.Helpers
-{   
+{
     public static class PlaylistItemFactory
     {
         /// <summary>

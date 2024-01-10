@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Playlistic.Helpers;
+using Playlistic.Interfaces;
+using Playlistic.Services;
 
 namespace Playlistic
 {
@@ -25,6 +27,7 @@ namespace Playlistic
             {
                 so.IdleTimeout = TimeSpan.FromSeconds(60);
             });
+            services.AddTransient<IYoutube2SpotifyService, Youtube2SpotifyServices>();
             HttpContextExtensions.AddHttpContextAccessor(services);
         }
 

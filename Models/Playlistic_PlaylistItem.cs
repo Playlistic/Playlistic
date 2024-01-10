@@ -1,5 +1,4 @@
-﻿using Playlistic.Helpers;
-using SpotifyAPI.Web;
+﻿using SpotifyAPI.Web;
 using System.Linq;
 
 namespace Playlistic.Models

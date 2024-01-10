@@ -54,7 +54,7 @@ namespace Playlistic.Controllers
 
 
 
-            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
+            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
         }
 
         public IActionResult AuthReturnCode(string code)
@@ -67,7 +67,7 @@ namespace Playlistic.Controllers
                 string postData = "client_id=" + spotifyAppId;
                 postData += "&grant_type=" + "authorization_code";
                 postData += "&code=" + code;
-                postData += "&redirect_uri=" + $"{HttpUtility.UrlEncode(MyHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode";               
+                postData += "&redirect_uri=" + $"{HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode";               
                 code_verifier = HttpContext.Session.GetString("code_verifier");
                 postData += "&code_verifier=" + code_verifier;
                 var data = Encoding.ASCII.GetBytes(postData);

@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Playlistic.Helpers
 {
-    public class MyHttpContext
+    public class PlaylisticHttpContext
     {
         private static IHttpContextAccessor m_httpContextAccessor;
 
@@ -27,7 +27,7 @@ namespace Playlistic.Helpers
 
         public static IApplicationBuilder UseHttpContext(this IApplicationBuilder app)
         {
-            MyHttpContext.Configure(app.ApplicationServices.GetRequiredService<IHttpContextAccessor>());
+            PlaylisticHttpContext.Configure(app.ApplicationServices.GetRequiredService<IHttpContextAccessor>());
             return app;
         }
     }
