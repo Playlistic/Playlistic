@@ -22,7 +22,13 @@ namespace Playlistic.Controllers
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IYoutube2SpotifyService _youtube2SpotifyService;
         private string _access_Token { get { return HttpContext.Session.GetString("access_token"); } }
-        private string _user_Id { get { return HttpContext.Session.GetString("user_Id"); } }
+        private string _user_Id { get { return HttpContext.Session.GetString("user_Id"); } }      
+        private string YoutubePlaylistID { get; set; }
+        private YoutubePlaylistMetadata youtubePlaylistMetadata;
+
+        private dynamic InitialData;
+        private readonly string openAIAccessToken;
+        private readonly string openAIAssistantSetupString;
 
         public Youtube2SpotifyController(IConfiguration configuration, IWebHostEnvironment hostingEnvironment, IYoutube2SpotifyService youtube2SpotifyService)
         {
@@ -32,13 +38,6 @@ namespace Playlistic.Controllers
             openAIAssistantSetupString = configuration["OpenAIPrompt"];
             _youtube2SpotifyService = youtube2SpotifyService;
         }
-
-        private string YoutubePlaylistID { get; set; }
-        private YoutubePlaylistMetadata youtubePlaylistMetadata;
-
-        private dynamic InitialData;
-        private readonly string openAIAccessToken;
-        private readonly string openAIAssistantSetupString;
 
 
         public async Task<IActionResult> Index(string youtubePlaylistID)
