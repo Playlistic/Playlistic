@@ -8,10 +8,12 @@ using Playlistic.Interfaces;
 using Playlistic.Models;
 using SpotifyAPI.Web;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -35,8 +37,10 @@ namespace Playlistic.Services
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(dynamic playlistData)
         {
             string title = playlistData.header.musicDetailHeaderRenderer.title.runs[0].text;
-            string description = playlistData.header.musicDetailHeaderRenderer.description.runs[0].text;
+            string description = playlistData.header.musicDetailHeaderRenderer.description?.runs[0].text;
             string coverArt = playlistData.header.musicDetailHeaderRenderer.thumbnail.croppedSquareThumbnailRenderer.thumbnail.thumbnails[1].url;
+            //apparently description can be null
+            description = string.IsNullOrEmpty(description)? string.Empty : description;
 
             string base64ImageString = string.Empty;
 
@@ -135,7 +139,7 @@ namespace Playlistic.Services
 
             try
             {
-                PlaylistAddItemsRequest playlistAddItemsRequest = new(trackURI);              
+                PlaylistAddItemsRequest playlistAddItemsRequest = new(trackURI);
 
                 SnapshotResponse snapShotResponse = await spotify.Playlists.AddItems(spotifyPlaylistId, playlistAddItemsRequest);
                 if (snapShotResponse.SnapshotId != null)
@@ -307,7 +311,9 @@ namespace Playlistic.Services
 
                 PlaylistItems = GetPreliminaryPlaylistItems(playlist);
 
-                int numIterations = PlaylistItems.Count / 10;
+                decimal d = (decimal)PlaylistItems.Count / (decimal)10;
+                int numIterations = (int)Math.Ceiling(d);
+
                 List<Playlistic_PlaylistItem> Results = new();
                 // break input list into sublist of max 10 items
                 for (int i = 0; i < numIterations; i++)
@@ -328,27 +334,46 @@ namespace Playlistic.Services
 
                     // add total number of song names
                     // okay, we got the title, time to look it up on Spotify
-                    string newSpotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata, user.Id);
 
-                    await UploadCoverToPlaylist(newSpotifyPlaylistID, youtubePlaylistMetadata);
+                    //hol up, check if the user already have an existing playlist wit the same name/description
+                    bool success = false;
 
+                    string spotifyPlaylistID = await GetExistingPlaylistId(youtubePlaylistMetadata, user.Id);
 
-                    List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
-                    string jsonString = JsonConvert.SerializeObject(verificationObjects);
+                    if (string.IsNullOrEmpty(spotifyPlaylistID))
+                    {
+                        spotifyPlaylistID = await CreateEmptyPlayListOnSpotify(youtubePlaylistMetadata, user.Id);
+                        await UploadCoverToPlaylist(spotifyPlaylistID, youtubePlaylistMetadata);
+                        success = await AddTrackToSpotifyPlaylist(spotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
+                    }
+                    else
+                    {
+                        //update the cover 
+                        await UploadCoverToPlaylist(spotifyPlaylistID, youtubePlaylistMetadata);
+                        //get existing tracks for current playlist
+                        FullPlaylist fullPlaylist = await spotify.Playlists.Get(spotifyPlaylistID);
+                        //get the trackIds
+                        List<string> existingTracksIds = fullPlaylist.Tracks.Items.Select(x => { return ((FullTrack)x.Track).Id; }).ToList();
+                        List<FullTrack> newTracks = PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList();
+                        //remove any existing tracks from the list we are intending to add to spotify
+                        newTracks = newTracks.Where(x => !existingTracksIds.Contains(x.Id)).ToList();
+                        success = await AddTrackToSpotifyPlaylist(spotifyPlaylistID, newTracks);
+                    }
 
-
-                    bool success = await AddTrackToSpotifyPlaylist(newSpotifyPlaylistID, PlaylistItems.Select(x => { return x.FoundSpotifyTrack; }).ToList());
-
+                    // used to generate test data for testing results page
+                    //List<VerificationObject> verificationObjects = PlaylistItems.Select(x => { return new VerificationObject(PlaylistItems.IndexOf(x), x.SpotifySearchObject.Song, x.FoundSpotifyTrack.Name); }).ToList();
+                    //string jsonString = JsonConvert.SerializeObject(verificationObjects);
 
                     if (success)
-                    {
+                    {                        
                         resultModel.PlaylistItems = PlaylistItems;
-                        resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{newSpotifyPlaylistID}";
+                        resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{spotifyPlaylistID}";
                         resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";
                         string resultModelString = JsonConvert.SerializeObject(resultModel);
                         return resultModel;
                     }
                     throw new Exception("Failed to add tracks to spotify");
+
                 }
                 else
                 {
@@ -361,6 +386,26 @@ namespace Playlistic.Services
                 Console.WriteLine(exception.StackTrace);
                 return new ResultModel(FaultCode.ConversionFailed, $"https://youtube.com/playlist?list={youtubePlaylistId}");
             }
+        }
+
+        private async Task<string> GetExistingPlaylistId(YoutubePlaylistMetadata youtubePlaylistMetadata, string userId)
+        {
+            Paging<FullPlaylist> fullPlaylist = await spotify.Playlists.GetUsers(userId);
+            FullPlaylist existingPlaylist = fullPlaylist.Items.FirstOrDefault(x =>
+            {
+                if (x.Name == youtubePlaylistMetadata.title && x.Description == youtubePlaylistMetadata.description)
+                {
+                    return true;
+                }
+                return false;
+            });
+
+            if (existingPlaylist != null)
+            {
+                return existingPlaylist.Id;
+            }
+            return null;
+
         }
         private static JArray GetPlaylistItem(dynamic initialData)
         {
