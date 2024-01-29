@@ -33,7 +33,7 @@ namespace Playlistic.Helpers
             List<SpotifySearchObject> spotifySearchObjects = new();
 
             string AISystemPostRequestBody = $"{{" +
-                                                    $"\"model\": \"gpt-3.5-turbo-16k-0613\"," +
+                                                    $"\"model\": \"gpt-4\"," +
                                                     $"\"temperature\": 0," +
                                                     $"\"top_p\": 0," +
                                                     $"\"max_tokens\": 2048," +
