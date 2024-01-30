@@ -62,7 +62,7 @@ namespace Playlistic.Helpers
 
                 if (!cleanedSongName.Contains(" - ") && !cleanedSongName.Contains(" – "))
                 {
-                    rawPlaylistItem.SpotifySearchObject.Artists = rawPlaylistItem.SpotifySearchObject.Artists.Select(x => x.ToLower()).ToList();
+                    rawPlaylistItem.SpotifySearchObject.MainArtists = rawPlaylistItem.SpotifySearchObject.MainArtists.Select(x => x.ToLower()).ToList();
                 }
 
                 rawPlaylistItem.SpotifySearchObject.Song = cleanedSongName;

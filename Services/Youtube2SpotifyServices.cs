@@ -220,9 +220,9 @@ namespace Playlistic.Services
         {
             StringBuilder queryBuilder = new();
 
-            if (playlistItem.SpotifySearchObject.Artists != null)
+            if (playlistItem.SpotifySearchObject.MainArtists != null)
             {
-                queryBuilder.Append(string.Join(" ", playlistItem.SpotifySearchObject.Artists));
+                queryBuilder.Append(string.Join(" ", playlistItem.SpotifySearchObject.MainArtists));
             }
             else
             {
@@ -273,7 +273,7 @@ namespace Playlistic.Services
                 playlistItem.OriginalYoutubeObject.ThumbnailURL = originalYoutubeThumbnailSmall;
                 playlistItem.OriginalYoutubeObject.VideoChannelTitle = songArtists;
                 playlistItem.OriginalYoutubeObject.VideoTitle = songName;
-                playlistItem.SpotifySearchObject.Artists.Add(songArtists.ToLower());
+                playlistItem.SpotifySearchObject.MainArtists.Add(songArtists.ToLower());
                 OriginalYoutubeData.Add(playlistItem);
             }
             return OriginalYoutubeData;
