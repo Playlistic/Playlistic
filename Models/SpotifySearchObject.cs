@@ -12,6 +12,9 @@ namespace Playlistic.Models
         public SpotifySearchObject()
         {
             Song = string.Empty;
+            MainArtists = new List<string>();
+            Producers = new List<string>();
+            FeaturedArtists = new List<string>();
         }
     }
 }
