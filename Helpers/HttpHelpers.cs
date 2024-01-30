@@ -20,7 +20,7 @@ namespace Playlistic.Helpers
 
             var payload = new
             {
-                model = "gpt-4",
+                model = "gpt-4-turbo-preview",
                 temperature = 2,
                 max_tokens = 2048,
                 top_p = 0,
@@ -38,7 +38,6 @@ namespace Playlistic.Helpers
                         }
                 }
             };
-
             using HttpClient httpClient = new();
             httpClient.Timeout = new TimeSpan(0, 0, 300);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", OpenAIAccessToken);
