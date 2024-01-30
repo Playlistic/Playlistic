@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Playlistic.Models
 {
@@ -31,11 +31,11 @@ namespace Playlistic.Models
     }
     public class JsonAIResult
     {
-        [JsonProperty]
+
         public List<SpotifySearchObject> spotifySearchObjects;
-        [JsonProperty]
+        [JsonIgnore]
         public object Comments;
-        [JsonProperty]
+        [JsonIgnore]
         public object Messages;
     }
 }

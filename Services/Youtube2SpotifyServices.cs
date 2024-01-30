@@ -18,6 +18,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Playlistic.Services
 {
@@ -32,7 +33,7 @@ namespace Playlistic.Services
         private PrivateUser user;
 
         public string OpenAIAccessToken { set { openAIAccessToken = value; } }
-        public string OpenAIAssistantSetupString { set { openAIAssistantSetupString = value; } }
+        public string OpenAIAssistantSetupString { set { openAIAssistantSetupString = value; } get { return openAIAssistantSetupString.Replace("\r\n", string.Empty); } }
 
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(dynamic playlistData)
         {
@@ -40,7 +41,7 @@ namespace Playlistic.Services
             string description = playlistData.header.musicDetailHeaderRenderer.description?.runs[0].text;
             string coverArt = playlistData.header.musicDetailHeaderRenderer.thumbnail.croppedSquareThumbnailRenderer.thumbnail.thumbnails[1].url;
             //apparently description can be null
-            description = string.IsNullOrEmpty(description)? string.Empty : description;
+            description = string.IsNullOrEmpty(description) ? string.Empty : description;
 
             string base64ImageString = string.Empty;
 
@@ -219,7 +220,15 @@ namespace Playlistic.Services
         {
             StringBuilder queryBuilder = new();
 
-            queryBuilder.Append(string.Join(" ", playlistItem.SpotifySearchObject.Artists));
+            if (playlistItem.SpotifySearchObject.Artists != null)
+            {
+                queryBuilder.Append(string.Join(" ", playlistItem.SpotifySearchObject.Artists));
+            }
+            else
+            {
+                queryBuilder.Append(playlistItem.OriginalYoutubeObject.VideoChannelTitle);
+            }
+
             queryBuilder.Append($" {playlistItem.SpotifySearchObject.Song}");
 
             return queryBuilder.ToString();
@@ -319,7 +328,7 @@ namespace Playlistic.Services
                 for (int i = 0; i < numIterations; i++)
                 {
                     var Sublist = PlaylistItems.Take(new Range(i * 10, i * 10 + 10));
-                    var SubPlaylistItems = PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(Sublist.ToList(), openAIAssistantSetupString, openAIAccessToken);
+                    var SubPlaylistItems = await PlaylistItemFactory.CleanUpPlaylistItems_PoweredByAI(Sublist.ToList(), openAIAssistantSetupString, openAIAccessToken);
                     Results.AddRange(SubPlaylistItems);
                 }
 
@@ -365,7 +374,7 @@ namespace Playlistic.Services
                     //string jsonString = JsonConvert.SerializeObject(verificationObjects);
 
                     if (success)
-                    {                        
+                    {
                         resultModel.PlaylistItems = PlaylistItems;
                         resultModel.SpotifyLink = $"https://open.spotify.com/playlist/{spotifyPlaylistID}";
                         resultModel.YoutubeLink = $"https://youtube.com/playlist?list={youtubePlaylistId}";

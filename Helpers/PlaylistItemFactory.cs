@@ -1,6 +1,7 @@
 ﻿using Playlistic.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Playlistic.Helpers
 {
@@ -70,19 +71,18 @@ namespace Playlistic.Helpers
             return rawPlaylistItems;
         }
 
-        public static List<Playlistic_PlaylistItem> CleanUpPlaylistItems_PoweredByAI(List<Playlistic_PlaylistItem> rawPlaylistItems, string OpenAIAssistantSetupString, string openAIAccessToken)
-        {
-
+        public static async Task<List<Playlistic_PlaylistItem>> CleanUpPlaylistItems_PoweredByAI(List<Playlistic_PlaylistItem> rawPlaylistItems, string OpenAIAssistantSetupString, string openAIAccessToken)
+        {           
             string OpenAIReadyInputListString = "[" + string.Join(",", rawPlaylistItems.Select(x =>
               {
-                  return $"{{" +
-                  $"\\\"ArtistOriginal\\\":\\\"{x.OriginalYoutubeObject.VideoChannelTitle}\\\"," +
+                  return 
+                  $"{{" +
                   $"\\\"Input\\\":\\\"{x.OriginalYoutubeObject.VideoTitle}\\\""+
                   $"}}";
 
               })) + "]";
 
-            List<SpotifySearchObject> spotifySearchObjects = HttpHelpers.MakeOpenAIRequest(OpenAIAssistantSetupString, OpenAIReadyInputListString, openAIAccessToken);
+            List<SpotifySearchObject> spotifySearchObjects = await HttpHelpers.MakeOpenAIRequest(OpenAIAssistantSetupString, OpenAIReadyInputListString, openAIAccessToken);
 
             for (int i = 0; i < rawPlaylistItems.Count; i++)
             {

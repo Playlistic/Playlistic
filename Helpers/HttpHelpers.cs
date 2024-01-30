@@ -1,62 +1,53 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using Playlistic.Models;
+using System.Net.Http;
+using System;
+using System.Text.Json;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using System.Net.Http.Headers;
+using Newtonsoft.Json;
 
 namespace Playlistic.Helpers
 {
     public static class HttpHelpers
     {
-        public static HttpWebResponse MakePostRequest(string url, string postData, string token)
-        {
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            var data = Encoding.UTF8.GetBytes(postData);
-            request.ContentLength = data.Length;
-            request.Method = "POST";
-            request.ContentType = "application/json;charset=utf-8";
-            request.Accept = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + token);
-            request.Timeout = 300000;
-
-            using (var stream = request.GetRequestStream())
-            {
-                stream.Write(data, 0, data.Length);
-            }
-
-            return (HttpWebResponse)request.GetResponse();
-        }
-
-        public static List<SpotifySearchObject> MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
+        public static async Task<List<SpotifySearchObject>> MakeOpenAIRequest(string OpenAIAssistantSetupString, string OpenAIReadyInputListString, string OpenAIAccessToken)
         {
             List<SpotifySearchObject> spotifySearchObjects = new();
 
-            string AISystemPostRequestBody = $"{{" +
-                                                    $"\"model\": \"gpt-4\"," +
-                                                    $"\"temperature\": 0," +
-                                                    $"\"top_p\": 0," +
-                                                    $"\"max_tokens\": 2048," +
-                                                    $"\"frequency_penalty\": 0," +
-                                                    $"\"presence_penalty\": 0," +
-                                                    $"\"messages\": [" +
-                                                                        $"{{ \"role\": \"system\"," +
-                                                                        $"   \"content\": \"{OpenAIAssistantSetupString}\"" +
-                                                                        $"}}" +
-                                                                        "," +
-                                                                        $"{{ \"role\": \"user\"," +
-                                                                        $"   \"content\": \"{OpenAIReadyInputListString}\"" +
-                                                                        $"}}" +
-                                                                  $"]" +
-                                             $"}}";
-
-            HttpWebResponse systemSetupResponse = MakePostRequest("https://api.openai.com/v1/chat/completions", AISystemPostRequestBody, OpenAIAccessToken);
-            if (systemSetupResponse.StatusCode == HttpStatusCode.OK)
+            var payload = new
             {
-                using Stream stream = systemSetupResponse.GetResponseStream();
-                using StreamReader reader = new(stream);
-                string AIPlaylistGenerationResponse = reader.ReadToEnd();
+                model = "gpt-4",
+                temperature = 2,
+                max_tokens = 2048,
+                top_p = 0,
+                frequency_penalty = 0,
+                presence_penalty = 0,
+                messages = new[]
+                {
+                    new {
+                            role = "system",
+                            content = OpenAIAssistantSetupString
+                        },
+                    new {
+                            role = "user",
+                            content = OpenAIReadyInputListString
+                        }
+                }
+            };
 
+            using HttpClient httpClient = new();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", OpenAIAccessToken);
+            string payloadString = System.Text.Json.JsonSerializer.Serialize(payload);
+            StringContent payloadContent = new(payloadString, Encoding.UTF8, "application/json");
+            HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(new Uri("https://api.openai.com/v1/chat/completions"), payloadContent);
+
+            if (httpResponseMessage.StatusCode == HttpStatusCode.OK)
+            {
+                string AIPlaylistGenerationResponse = await httpResponseMessage.Content.ReadAsStringAsync();
                 OpenAIResult openAIResult = JsonConvert.DeserializeObject<OpenAIResult>(AIPlaylistGenerationResponse);
                 string rawResult = openAIResult.choices[0].message.content;
                 JsonAIResult jsonAIResult = JsonConvert.DeserializeObject<JsonAIResult>(rawResult);
