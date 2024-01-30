@@ -40,6 +40,7 @@ namespace Playlistic.Helpers
             };
 
             using HttpClient httpClient = new();
+            httpClient.Timeout = new TimeSpan(0, 0, 300);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", OpenAIAccessToken);
             string payloadString = System.Text.Json.JsonSerializer.Serialize(payload);
             StringContent payloadContent = new(payloadString, Encoding.UTF8, "application/json");
