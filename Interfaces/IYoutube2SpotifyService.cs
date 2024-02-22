@@ -11,7 +11,7 @@ namespace Playlistic.Interfaces
         public SpotifyClient SpotifyClient { set; }
         public string OpenAIAccessToken { set; }
         public string OpenAIAssistantSetupString { set; }
-        public dynamic GetYoutubePlaylistDataFromHTML(string playlistId);
+        public Task<dynamic> GetYoutubePlaylistDataFromHTML(string playlistId);
         public YoutubePlaylistMetadata GenerateYoutubePlaylistMetadata(dynamic playlistData);
         public List<Playlistic_PlaylistItem> GetPreliminaryPlaylistItems(JArray incomingRawYoutubeMusicPlaylistData);
         public Task<bool> AddTrackToSpotifyPlaylist(string spotifyPlaylistId, List<FullTrack> tracksToAdd);

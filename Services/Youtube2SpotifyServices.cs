@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -27,6 +28,7 @@ namespace Playlistic.Services
         private dynamic InitialData;
         private string openAIAccessToken;
         private string openAIAssistantSetupString;
+        private readonly string userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36 Edg/102.0.1245.33";
         private PrivateUser user;
 
         public string OpenAIAccessToken { set { openAIAccessToken = value; } }
@@ -74,24 +76,22 @@ namespace Playlistic.Services
             };
         }
 
-        public dynamic GetYoutubePlaylistDataFromHTML(string playlistId)
+        public async Task<dynamic> GetYoutubePlaylistDataFromHTML(string playlistId)
         {
             // youtube... in their infinite wisdom...
-            // decided to not include certain songs within their playlist (basically videos provided by youtube music with "- topic"
-            // in the channel name), rendering their playlistitem api unreliable
+            // decided to not include certain songs within their playlist (basically videos provided by youtube music with "- topic" in the channel name)
+            // rendering their playlistitem api unreliable
 
             // grab the playlist from music.youtube.com 
 
-            string html;
-            HttpWebRequest request = WebRequest.Create($"https://music.youtube.com/playlist?list={playlistId}") as HttpWebRequest;
-            request.AutomaticDecompression = DecompressionMethods.GZip;
-            request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36 Edg/102.0.1245.33";
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (Stream stream = response.GetResponseStream())
-            using (StreamReader reader = new(stream))
+            Uri playlistUri = new($"https://music.youtube.com/playlist?list={playlistId}");
+            HttpClient client = new(new HttpClientHandler()
             {
-                html = reader.ReadToEnd();
-            }
+                AutomaticDecompression = DecompressionMethods.GZip
+            });
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(userAgentString);
+            HttpResponseMessage playlistResponseMessage = await client.GetAsync(playlistUri);
+            string html = await playlistResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             HtmlParser parser = new();
             IHtmlDocument document = parser.ParseDocument(html);
@@ -293,7 +293,7 @@ namespace Playlistic.Services
             try
             {
                 //collect playlist data(including metadata and playlist items) from youtube music 
-                InitialData = GetYoutubePlaylistDataFromHTML(youtubePlaylistId);
+                InitialData = await GetYoutubePlaylistDataFromHTML(youtubePlaylistId);
             }
             catch (Exception ex)
             {
