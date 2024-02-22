@@ -1,16 +1,13 @@
 ﻿using System;
-using System.IO;
-using System.Net;
-using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
-using Microsoft.AspNetCore.Http;
-using System.Web;
-using Playlistic.Helpers;
-using Microsoft.Extensions.Configuration;
-using SpotifyAPI.Web;
 using System.Threading.Tasks;
+using System.Web;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Playlistic.Helpers;
+using SpotifyAPI.Web;
+
 
 namespace Playlistic.Controllers
 {
