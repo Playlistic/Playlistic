@@ -10,6 +10,7 @@ using System.Web;
 using Playlistic.Helpers;
 using Microsoft.Extensions.Configuration;
 using SpotifyAPI.Web;
+using System.Threading.Tasks;
 
 namespace Playlistic.Controllers
 {
@@ -57,37 +58,11 @@ namespace Playlistic.Controllers
             return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
         }
 
-        public IActionResult AuthReturnCode(string code)
+        public async Task<IActionResult> AuthReturnCode(string code)
         {
             if (code != null)
             {
-                string url = "https://accounts.spotify.com/api/token";
-                string html = string.Empty;
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                string postData = "client_id=" + spotifyAppId;
-                postData += "&grant_type=" + "authorization_code";
-                postData += "&code=" + code;
-                postData += "&redirect_uri=" + $"{HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode";               
-                code_verifier = HttpContext.Session.GetString("code_verifier");
-                postData += "&code_verifier=" + code_verifier;
-                var data = Encoding.ASCII.GetBytes(postData);
-
-                request.Method = "POST";
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.ContentLength = data.Length;
-
-                using (var stream = request.GetRequestStream())
-                {
-                    stream.Write(data, 0, data.Length);
-                }
-
-                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                using (Stream stream = response.GetResponseStream())
-                using (StreamReader reader = new(stream))
-                {
-                    html = reader.ReadToEnd();
-                }
-                PKCETokenResponse spotifyToken = JsonConvert.DeserializeObject<PKCETokenResponse>(html);
+                PKCETokenResponse spotifyToken = await new OAuthClient().RequestToken(new PKCETokenRequest(spotifyAppId, code, new Uri($"{HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode"), code_verifier));
                 HttpContext.Session.SetString("access_token", spotifyToken.AccessToken);
                 HttpContext.Session.SetString("expire_time", DateTime.Now.AddSeconds(spotifyToken.ExpiresIn).ToString());
             }
