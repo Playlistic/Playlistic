@@ -16,10 +16,8 @@ namespace Playlistic.Controllers
 {
     public class AuthController : Controller
     {
-        string code_challenge;
-        string code_verifier;
-        private string spotifyAppId;
-        private IConfiguration _configuration;
+        private readonly string spotifyAppId;
+        private readonly IConfiguration _configuration;
 
         public AuthController(IConfiguration configuration)
         {
@@ -30,38 +28,28 @@ namespace Playlistic.Controllers
         [HttpPost]
         public IActionResult TriggerAuth()
         {
-            var rng = RandomNumberGenerator.Create();
+            // Generates a secure random verifier of length 100 and its challenge
+            var (verifier, challenge) = PKCEUtil.GenerateCodes();
+            HttpContext.Session.SetString("code_verifier", verifier);
 
-            var bytes = new byte[32];
-            rng.GetBytes(bytes);
-
-            // It is recommended to use a URL-safe string as code_verifier.
-            // See section 4 of RFC 7636 for more details.
-            code_verifier = Convert.ToBase64String(bytes)
-                .TrimEnd('=')
-                .Replace('+', '-')
-                .Replace('/', '_');
-
-
-            using (var sha256 = SHA256.Create())
+            var loginRequest = new LoginRequest(new Uri($"{HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode"),
+              spotifyAppId,
+              LoginRequest.ResponseType.Code
+            )
             {
-                var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(code_verifier));
-                code_challenge = Convert.ToBase64String(challengeBytes)
-                    .TrimEnd('=')
-                    .Replace('+', '-')
-                    .Replace('/', '_');
-            }
-            HttpContext.Session.SetString("code_verifier", code_verifier);
-
-
-
-            return Redirect($"https://accounts.spotify.com/authorize?client_id={spotifyAppId}&response_type=code&redirect_uri={HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode&scope=playlist-modify-public%20ugc-image-upload&code_challenge_method=S256&code_challenge=" + code_challenge);
+                CodeChallengeMethod = "S256",
+                CodeChallenge = challenge,
+                Scope = new[] { Scopes.PlaylistModifyPublic, Scopes.UgcImageUpload }
+            };
+            var uri = loginRequest.ToUri();
+            return Redirect(uri.ToString());
         }
 
         public async Task<IActionResult> AuthReturnCode(string code)
         {
             if (code != null)
             {
+                string code_verifier = HttpContext.Session.GetString("code_verifier");
                 PKCETokenResponse spotifyToken = await new OAuthClient().RequestToken(new PKCETokenRequest(spotifyAppId, code, new Uri($"{HttpUtility.UrlEncode(PlaylisticHttpContext.AppBaseUrl)}%2FAuth%2FAuthReturnCode"), code_verifier));
                 HttpContext.Session.SetString("access_token", spotifyToken.AccessToken);
                 HttpContext.Session.SetString("expire_time", DateTime.Now.AddSeconds(spotifyToken.ExpiresIn).ToString());
