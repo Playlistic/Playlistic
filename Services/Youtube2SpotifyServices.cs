@@ -8,17 +8,14 @@ using Playlistic.Interfaces;
 using Playlistic.Models;
 using SpotifyAPI.Web;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Playlistic.Services
 {

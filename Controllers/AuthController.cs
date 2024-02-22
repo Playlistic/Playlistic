@@ -4,12 +4,12 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using Playlistic.Models;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Http;
 using System.Web;
 using Playlistic.Helpers;
 using Microsoft.Extensions.Configuration;
+using SpotifyAPI.Web;
 
 namespace Playlistic.Controllers
 {
@@ -87,9 +87,9 @@ namespace Playlistic.Controllers
                 {
                     html = reader.ReadToEnd();
                 }
-                SpotifyToken spotifyToken = JsonConvert.DeserializeObject<SpotifyToken>(html);
-                HttpContext.Session.SetString("access_token", spotifyToken.access_token);
-                HttpContext.Session.SetString("expire_time", DateTime.Now.AddSeconds(spotifyToken.expires_in).ToString());
+                PKCETokenResponse spotifyToken = JsonConvert.DeserializeObject<PKCETokenResponse>(html);
+                HttpContext.Session.SetString("access_token", spotifyToken.AccessToken);
+                HttpContext.Session.SetString("expire_time", DateTime.Now.AddSeconds(spotifyToken.ExpiresIn).ToString());
             }
 
             return Redirect("~/");

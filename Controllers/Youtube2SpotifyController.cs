@@ -16,7 +16,7 @@ namespace Playlistic.Controllers
     {
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IYoutube2SpotifyService _youtube2SpotifyService;
-        private string _access_Token { get { return HttpContext.Session.GetString("access_token"); } }
+        private string Access_Token { get { return HttpContext.Session.GetString("access_token"); } }
 
 
         public Youtube2SpotifyController(IConfiguration configuration, IWebHostEnvironment hostingEnvironment, IYoutube2SpotifyService youtube2SpotifyService)
@@ -48,7 +48,7 @@ namespace Playlistic.Controllers
 
             homeModel.SetAuthenticated(true);
 
-            _youtube2SpotifyService.SpotifyClient = new SpotifyClient(_access_Token);
+            _youtube2SpotifyService.SpotifyClient = new SpotifyClient(Access_Token);
 
             if (!string.IsNullOrEmpty(youtubePlaylistID) || !string.IsNullOrWhiteSpace(youtubePlaylistID))
             {
