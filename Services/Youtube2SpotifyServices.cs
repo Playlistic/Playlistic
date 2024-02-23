@@ -85,7 +85,7 @@ namespace Playlistic.Services
             // grab the playlist from music.youtube.com 
 
             Uri playlistUri = new($"https://music.youtube.com/playlist?list={playlistId}");
-            HttpClient client = new(new HttpClientHandler()
+            using HttpClient client = new(new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.GZip
             });
